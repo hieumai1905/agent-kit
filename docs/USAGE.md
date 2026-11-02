@@ -25,6 +25,14 @@ Không cần nhớ Task ID hoặc điền JSON. Khi có nhiều việc cùng ch�
 
 Không pull/reset đè clone đang sửa hoặc di chuyển/xóa kit được project tham chiếu. Với phiên bản mới, clone tag mới vào thư mục riêng bên ngoài project, verify rồi dùng installer dry-run/upgrade/apply. Bắt buộc đọc lại AGENTS.md và CLAUDE.md và kiểm helper path/mode/override. Nội dung riêng ngoài managed block phải được giữ nguyên.
 
+## File của kit và commit sản phẩm
+
+Kit là công cụ local: clone, state/DB, backup, contract/checkpoint của kit, log, báo cáo, inventory và file tạm phải ở ngoài working tree. Chỉ guidance local cần ở project root; file kit-only chưa tracked phải được loại bằng Git local exclude theo [BOOTSTRAP mục 4.1](../BOOTSTRAP.md#41-kit-local-only-và-bảo-toàn-commit-sản-phẩm). Không thêm `.gitignore` vào commit chỉ để cấu hình kit. Giữ quy tắc này ngoài managed block trong hai file guidance để lần mở chat sau vẫn đọc được.
+
+Trước/sau staging được người dùng duyệt riêng, agent phải đối chiếu inventory và **nội dung index**, không chỉ working tree. Artifact kit trong staged diff phải chặn việc tiếp tục commit. Không tự force-add, untrack, unstage hoặc sửa history; file tracked/mixed cần quyết định rõ. Contract/schema/docs/tests của tính năng sản phẩm vẫn thuộc phạm vi review bình thường, không ignore rộng theo tên thư mục.
+
+v1.0.2 chưa có hook chặn commit: local exclude ngăn thêm nhầm thông thường, còn kiểm index là bước quy trình bắt buộc. Người dùng/agent cố tình vượt ignore vẫn có thể commit trực tiếp; không báo đã có cưỡng chế kỹ thuật.
+
 ## Gỡ hoặc rollback
 
 Agent chạy từ thư mục kit, thay placeholders bằng đường dẫn đã xác định và giữ state-home đang dùng:

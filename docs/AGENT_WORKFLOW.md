@@ -20,6 +20,8 @@ Chọn giải pháp nhỏ, rõ và maintainable; giữ conventions dự án. Pla
 
 [Checkpoint](CONTINUITY.md) quyết định phải lưu trước patch. Với route delegated, dùng đúng [checkedPatchFlow](CHECKED_PATCH_FLOW.md). Recheck contract, current source/Git và quyết định trước mỗi đợt tác động; dừng khi không còn đủ điều kiện. Một writer tuần tự; metadata không khóa writer khác ở cấp OS.
 
+Artifact chỉ phục vụ kit không được vào commit sản phẩm. Giữ clone/state/backup/checkpoint/log/report/file tạm ngoài working tree; guidance kit-only chưa tracked dùng Git local exclude, không sửa `.gitignore` hay hook của sản phẩm. Đọc inventory và quy tắc local-only ngoài managed block trong guidance. Trước/sau staging được duyệt riêng, đối chiếu scope và blob trong index; có artifact kit/managed block thì dừng trước commit, kể cả force-add/rename. Không tự sửa index, untrack hoặc ignore rộng contract/docs/tests của tính năng sản phẩm. File tracked/mixed chưa có cách tách rõ phải báo BLOCKED; xem [BOOTSTRAP mục 4.1](../BOOTSTRAP.md#41-kit-local-only-và-bảo-toàn-commit-sản-phẩm). v1.0.2 chưa có hook cưỡng chế bước kiểm này.
+
 ## 4. Kiểm thử, review và bàn giao
 
 Chạy focused checks trước, mở rộng theo ảnh hưởng/rủi ro; không báo PASS khi chưa chạy, không sửa test chỉ để che failure. Review diff đúng scope, preserve behavior và test đủ acceptance. Báo actual command/results, NOT_RUN/skip và giới hạn. Guard/tool lỗi: kiểm actual exit/body/file trước khi đi tiếp; không tự nối patch sau guard fail hoặc rollback mù.

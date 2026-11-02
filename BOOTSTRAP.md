@@ -68,15 +68,28 @@ Nếu có state-home riêng thì truyền cùng `--state-home` cho mọi lệnh,
 2. Nếu không giữ delegated opt-in: `delegation_files` đều DISABLED. Nếu giữ: đều OPT_IN_PROTOCOL_INSTALLED, nhưng `delegation_active` vẫn NOT_ESTABLISHED_BY_INSTALLATION.
 3. Đã có contract trước code, checkpoint ở các mốc continuity, checkpoint quyết định trước patch, test/review có bằng chứng và handoff. Task/approval không được suy từ state hoặc cài đặt.
 4. Không có global/parent/override/nested instruction đang có hiệu lực bỏ qua workflow hoặc cho sửa code trước contract. Kiểm lại scoped instructions trước khi vào subdirectory ở task sau. Không sửa config để cố bỏ qua xung đột.
-5. Doctor state khỏe; Git/source ngoài AGENTS.md, CLAUDE.md vẫn nguyên baseline. Backup/state/clone nằm ngoài project; không có dependency/settings/hook mới.
+5. Doctor state khỏe; source ngoài AGENTS.md, CLAUDE.md, HEAD và staged index vẫn nguyên baseline. Backup/state/clone nằm ngoài project; không có dependency/settings/hook mới. Thay đổi local exclude được phép ở mục 4.1 phải báo riêng; untracked status có thể giảm vì file kit đã được ignore, không phải bị xóa.
 
 Codex xây instruction chain khi bắt đầu run/session; ghi file không chứng minh phiên đang chạy đã tự reload. Trong chat setup, người dùng đã yêu cầu rõ việc đọc và áp dụng policy mới: agent phải đọc lại và xác nhận đang theo đúng nội dung đó. Nếu policy cũ/override còn ngăn áp dụng thì báo NEEDS_SESSION_REFRESH hoặc BLOCKED, không báo READY. Với session mới, xác minh provider nạp đúng files; không tự đổi global settings.
 
 Nguồn OpenAI Docs: [Custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md), phần discovery/verify (đối chiếu 02/11/2026). Chỉ dẫn này không tự chứng nhận Claude hoặc mọi provider. Kit ghi CLAUDE.md để giữ quy tắc repo đồng bộ; mức native evidence của v1.0.2 vẫn giới hạn ở Codex local.
 
+### 4.1. Kit local-only và bảo toàn commit sản phẩm
+
+Đây là yêu cầu bổ sung của prompt hiện hành trên `main`; installer/runtime ở tag `v1.0.2` **chưa tự cấu hình Git exclude hoặc chặn commit**. Agent phải thực hiện và kiểm tra phần này riêng, không suy từ `doctor` hay `no_changes=true`. Không sửa tag hoặc clone đã pin để giả lập một runtime mới.
+
+- Lập inventory ở ngoài repo: clone, state/DB và backup, file contract/checkpoint/handoff của kit, log/report, file tạm và đường dẫn guidance local. File mới chỉ phục vụ vận hành kit cũng phải nằm ngoài working tree và được ghi nhận trước khi tạo. Smoke ghi report trong clone kit bên ngoài project. Kiểm lại inventory sau mỗi mốc công việc, trước staging và trước handoff.
+- Chỉ hai file guidance cần nằm ở project root. Khi chúng là file **kit-only chưa tracked**, dùng `git rev-parse --git-path info/exclude` để xác định Git local exclude (không giả định `.git` luôn là thư mục). Bổ sung đúng pattern root như `/AGENTS.md`, `/CLAUDE.md`, giữ nguyên rule hiện có, kiểm bằng `git check-ignore -v -- AGENTS.md CLAUDE.md` cùng `git ls-files --stage -- AGENTS.md CLAUDE.md`. Không sửa `.gitignore` sản phẩm, global ignore, hook/Husky hoặc `core.hooksPath`.
+- Nếu file đã tracked, chứa quy tắc sản phẩm ngoài block, có artifact kit đã staged/committed, hoặc ignore không hiệu lực, báo **BLOCKED cho bảo vệ Git** và trình cách xử lý. Không tự `git rm --cached`, unstage/reset, rewrite history hay dùng `assume-unchanged`/`skip-worktree`. Ignore không bảo vệ nội dung đã tracked; không đánh đồng file `CLAUDE.md` sẵn có của sản phẩm với file do kit tạo.
+- Lưu quy tắc Git local-only do người dùng yêu cầu thành phần chỉ dẫn riêng **ngoài managed block** trong AGENTS.md và CLAUDE.md; giữ nguyên mẫu installer. Quy tắc đó phải yêu cầu đọc inventory, kiểm scope và index trước/sau staging, không force-add artifact và dừng khi chưa phân loại được file. Phiên sau phải đọc phần này cùng managed workflow. Chỉ thêm sau khi đã xác định hai file có thể giữ local-only; không tự sửa file chỉ dẫn sản phẩm tracked để ép setup qua.
+- Khi người dùng duyệt Git riêng: chỉ stage đường dẫn sản phẩm đúng task; đọc `git diff --cached --name-status` và các blob **trong index** (kể cả rename/copy), đối chiếu inventory và tìm managed block/nội dung artifact kit. Kiểm lại sau staging. Phát hiện artifact hoặc không kiểm được thì dừng trước commit, báo file; không tự sửa index của người dùng. Không tự dùng `git add -f`, `git add .` hoặc `git add -A`.
+- Contract/schema/docs/tests của **tính năng sản phẩm** có thể cần commit. Không ignore rộng `docs/`, `tests/`, `contract/`, `.claude/`, `*.json` hoặc mọi file có chữ “agent”. Phân loại theo nguồn gốc và mục đích thực tế.
+
+Local exclude ngăn thêm nhầm thông thường, không phải cổng commit bắt buộc. `git add -f` có thể vượt ignore; chỉ dẫn/checklist phụ thuộc agent thực hiện. Chưa cài pre-commit hook hoặc server-side policy, nên không tuyên bố chặn tuyệt đối mọi commit trực tiếp. Nguồn: [Git ignore](https://git-scm.com/docs/gitignore), [Git add](https://git-scm.com/docs/git-add).
+
 ## 5. Nghiệm thu ngắn và kết thúc setup
 
-Chỉ báo **SETUP_READY** khi các điều kiện trên đã được quan sát. Báo tối đa khoảng 10 dòng: project; clone path/tag/commit/version; mode/direct-or-delegated; hai file đã làm mới hoặc đã đúng; backup txid; doctor + manifest; sources/override đã đọc; source/Git ngoài hai file giữ nguyên; workflow sẽ áp dụng trong chat.
+Chỉ báo **SETUP_READY** khi các điều kiện trên đã được quan sát. Báo tối đa khoảng 10 dòng: project; clone path/tag/commit/version; mode/direct-or-delegated; hai file đã làm mới hoặc đã đúng; backup txid; doctor + manifest; sources/override đã đọc; inventory/local exclude/staged check; source/HEAD/index giữ nguyên; workflow sẽ áp dụng trong chat. Phần bảo vệ Git chưa đạt thì không báo READY toàn bộ.
 
 Nếu chưa đạt, báo BLOCKED với lỗi thực tế và phần đã/chưa thay đổi, không đổ cho kit trước khi đối chiếu path/tag/flags/override. Không che lỗi kit đã tái hiện; phân biệt rõ lỗi setup, môi trường và lỗi sản phẩm.
 

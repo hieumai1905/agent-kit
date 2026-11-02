@@ -18,6 +18,7 @@ Setup bắt buộc:
 2. Clone tag `v1.0.2` vào vị trí bền vững bên ngoài project; kiểm manifest và version.
 3. Dry-run rồi **làm mới cả AGENTS.md và CLAUDE.md** bằng installer của kit, giữ nguyên các quy tắc riêng ngoài managed block.
 4. Đọc lại hai file, xác nhận helper path/mode/state/override và workflow đang áp dụng trước khi báo **SETUP_READY**.
+5. Giữ mọi artifact vận hành kit local-only: clone/state/backup/checkpoint/log ngoài project; guidance kit-only chưa tracked vào Git local exclude. Kiểm inventory và staged content, lưu quy tắc local-only ngoài managed block để phiên sau đọc; không sửa `.gitignore`/hook của sản phẩm. Runtime v1.0.2 chưa tự làm bước này; prompt hiện hành yêu cầu agent thực hiện riêng theo [BOOTSTRAP mục 4.1](BOOTSTRAP.md#41-kit-local-only-và-bảo-toàn-commit-sản-phẩm).
 
 Không chạy `/init` để sinh workflow riêng thay kit. Nếu block bị tùy biến hoặc override xung đột, setup phải báo **BLOCKED** cùng nguyên nhân; không ghi đè hoặc báo thành công giả. Prompt đã cho phép setup đúng phạm vi nên không cần duyệt lại từng lệnh cài thông thường.
 
