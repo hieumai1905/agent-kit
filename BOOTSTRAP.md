@@ -4,7 +4,8 @@ Dành cho coding agent nhận **prompt setup trực tiếp từ người dùng**
 
 ## 1. Chốt đúng đích và phạm vi
 
-- Xác định canonical project root từ workspace người dùng đang mở, thường qua `git rev-parse --show-toplevel`; ghi lại trước khi đổi cwd. Nếu không xác định được duy nhất thì hỏi đúng điểm còn thiếu, không đoán. Không lấy repo kit làm project đích.
+- Chốt **thư mục làm việc hiện tại của agent lúc nhận prompt** bằng `pwd -P` (hoặc tương đương), lưu đường dẫn tuyệt đối thành `TARGET_CWD` **trước khi clone hoặc đổi cwd**. Mặc định `/ABS/PROJECT = TARGET_CWD`; cùng đường dẫn được dùng cho mọi `--repo`, state và hai file hướng dẫn. Không suy đích từ tên chat, repo từng làm, tên workspace hoặc repo kit.
+- Đối chiếu bằng `git -C /ABS/PROJECT rev-parse --show-toplevel`. Nếu canonical Git root trùng `TARGET_CWD`, tiếp tục. Nếu nó là thư mục cha hoặc vẫn có nhiều repo đích mơ hồ, hỏi đúng phạm vi trước khi apply; không tự nâng lên thư mục cha, chọn repo con hoặc cài hàng loạt. Chỉ đổi đích khi người dùng đã chọn rõ. Nếu thư mục hiện tại chưa thuộc Git repo, giữ nguyên đích, ghi nhận không có Git baseline và không tự chạy `git init`. Không lấy repo kit làm project đích.
 - Ghi nhận Git status, HEAD/index nếu có và các thay đổi chưa commit. Không stash/reset/stage/commit/push/deploy. Đọc chỉ dẫn hiện có: global/parent/project, AGENTS.override.md, AGENTS.md, CLAUDE.md và chỉ dẫn nested cho phạm vi sẽ làm. Không sửa file global hoặc settings của provider.
 - Kiểm Git và Python **3.11+**. Thiếu runtime/quyền/network thì báo điều kiện thiếu, không tự sudo hoặc cài dependencies. Runtime của kit dùng stdlib; cryptography/Node chỉ phục vụ một số tests/lab tùy chọn, không cần tự cài để setup guidance.
 

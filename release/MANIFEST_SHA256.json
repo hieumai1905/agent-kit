@@ -6,10 +6,10 @@
   "schema": 2,
   "sha256": {
     ".gitignore": "938af5749b56cdfc770e1026f94185e6c6fe1c526099a27f2c892a31fa67c379",
-    "BOOTSTRAP.md": "2ba22a71d3df21b3aa29d3cd5419785c2e16873fc831443c57d531098feacd26",
-    "INIT_PROMPT.md": "935cca7434865fbed2dcb3ac4ce3d33f3fce1fb635436609220730522c9ccc7d",
+    "BOOTSTRAP.md": "8dd845f33e9fb5bd48732987350f123503883a97dcbc35ab2d359533b88f3d4a",
+    "INIT_PROMPT.md": "892d6b78aa675376fa5de74ebf4affa1b84d43394c9598e84d8cc8ad3abd879e",
     "LICENSE": "e1ed20a20de83a92f2aa332aee0ac70585ac17536b96ea556f969d0d21cfe589",
-    "README.md": "ef8cd1a083a16edf09599d1fc68270c9d7b556d54c732246c9ba97bc184c6cdc",
+    "README.md": "e1cac9a1afd944ae44b2a7038d282a81cdc0817c056d8109cd71c010bd10bc29",
     "agentflow_core/__init__.py": "1a1b80e9865f5ac7461dcc5100397c635c12f6387ae5860c8c38aaa2de733371",
     "agentflow_core/cli.py": "4bc553810995be9ba9d945e924e0df8ac6f08162ffb2fe01e3e0c3dbdc7fa61c",
     "agentflow_core/coordinator.py": "7b8a886b10c3bf9ded564f8511756c5a15e001b979b1def1353dc3c13b01543e",

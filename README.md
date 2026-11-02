@@ -8,6 +8,10 @@ Quy trình làm việc với coding agent ngay trong dự án: **yêu cầu → 
 
 Mở **dự án cần làm việc** trong coding agent, sau đó gửi nguyên [prompt khởi tạo](INIT_PROMPT.md). Agent tự clone phiên bản đã pin ra ngoài dự án, chạy setup và kiểm tra kết quả theo [BOOTSTRAP.md](BOOTSTRAP.md). Bạn không cần nhập Task ID hoặc tự chạy lệnh cài.
 
+**Đích mặc định là thư mục làm việc hiện tại của agent lúc nhận prompt.** Agent chốt `pwd -P` trước khi clone/đổi thư mục và dùng đúng đường dẫn đó cho setup. Nếu Git root ở thư mục cha hoặc có nhiều repo đích chưa rõ, agent hỏi lại trước khi apply; không tự chọn repo khác. Prompt dùng chung cho các dự án, không chứa tên Concat/Teammate hay đường dẫn máy cụ thể.
+
+Lấy prompt hiện hành từ [INIT_PROMPT.md trên main](https://github.com/hieumai1905/agent-kit/blob/main/INIT_PROMPT.md). Prompt pin runtime ở tag `v1.0.2`; các tag và ZIP đã phát hành không bị sửa khi cập nhật hướng dẫn trên `main`.
+
 Setup bắt buộc:
 
 1. Kiểm tra project, Git, runtime và các chỉ dẫn/override đang có hiệu lực.
