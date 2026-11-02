@@ -1,0 +1,19 @@
+{
+  "product": "Agent Workflow System V3.0",
+  "candidate": "SI01-SI14 Development Candidate 1",
+  "date": "2026-10-29",
+  "source_baseline": "RC.1 / SHA-256 recorded in RC1_SOURCE_SHA256.txt",
+  "new_ui_or_app": false,
+  "provider_jobs_executed": false,
+  "product_repo_files_modified": false,
+  "local_regression_tests": 297,
+  "legacy_preview_tests": 5,
+  "si_tests_within_regression": 63,
+  "scratch_smoke_steps": 9,
+  "linux_local_tests_pass": true,
+  "G2": "BLOCKED_NATIVE_MACOS_CERTIFICATION_REQUIRED",
+  "G5": "BLOCKED_NO_ENFORCED_WRITER",
+  "G7": "PARTIAL_UNCERTIFIED_NATIVE_INSTALLER",
+  "EA01_EA16": "OUT_OF_SCOPE_NO_NEW_IMPLEMENTATION",
+  "provenance_warning": "Unprivileged local artifact, not signed production attestation"
+}

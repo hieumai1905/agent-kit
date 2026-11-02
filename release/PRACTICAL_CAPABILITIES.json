@@ -1,0 +1,53 @@
+{
+  "product": "Agent Workflow V3 - Minimal Repo Integration Kit",
+  "version": "3.0-practical-integration.2",
+  "release_class": "NON_CERTIFIED_PRACTICAL_INTEGRATION_CANDIDATE",
+  "user_interfaces": [
+    "codex_desktop",
+    "codex_cli",
+    "claude_desktop_code",
+    "claude_code_cli"
+  ],
+  "new_user_interface_or_service": false,
+  "installation": {
+    "repo_files": [
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "default_mode": "STRICT",
+    "optional_mode": "ADVISORY_EXPLICIT_USER_OPT_IN",
+    "dry_run": true,
+    "backup_and_checksum_rollback": true,
+    "native_hooks_installed": false,
+    "changes_product_code": false,
+    "raw_byte_backup": true,
+    "partial_install_recovery": true
+  },
+  "runtime": {
+    "task_navigation": "LOCAL_DRAFT",
+    "contract_review": "STRUCTURAL_ONLY",
+    "technical_plan_and_dag": "LOCAL_DRAFT",
+    "git_status": "READ_ONLY_SNAPSHOT",
+    "handoff": "LOCAL_UNTRUSTED_SNAPSHOT",
+    "reported_verification": "UNVERIFIED",
+    "model_advisor": "RECOMMENDATION_ONLY",
+    "provider_execution": "NOT_IMPLEMENTED"
+  },
+  "assurance": {
+    "G0": "HISTORICAL_LOCAL_PASS",
+    "G1": "LOCAL_PASS",
+    "G2": "BLOCKED_NATIVE_SECURITY",
+    "G3": "PARTIAL_LOCAL_INTEGRATION",
+    "G4": "PARTIAL_LOCAL_DRAFT",
+    "G5": "BLOCKED_NO_TRUSTED_WRITER",
+    "G6": "PARTIAL_HANDOFF_UNVERIFIED_DOD",
+    "G7": "PARTIAL_GUIDANCE_INSTALL_MACOS_UNCERTIFIED",
+    "providers_certified": [],
+    "security_mode_strict_enforced": false,
+    "advisory_is_process_only": true,
+    "pilot_status": "READY_FOR_CONTROLLED_ADVISORY_PILOT_PENDING_PROVIDER_E2E"
+  },
+  "next_test": "One small user-approved Quick coding task in a disposable macOS repository via existing Codex/Claude UI/CLI, after explicit ADVISORY mode selection",
+  "ea01_ea16_new_scope": "PAUSED_BY_USER",
+  "si01_si14": "INHERITED_LOCAL_DIAGNOSTICS_NOT_NATIVE_CERTIFIED"
+}

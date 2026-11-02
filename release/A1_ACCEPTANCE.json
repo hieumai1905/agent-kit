@@ -1,0 +1,142 @@
+{
+  "scope": "A1_KIT_IMPLEMENTATION_ONLY",
+  "date": "2026-11-02",
+  "baseline_version": "3.0-practical-integration.2",
+  "working_revision": "A1-2026-11-02",
+  "design_revision": 1,
+  "design_approval_observed": "Direct user message: ok duyệt A1",
+  "local_implementation_acceptance": "PASS",
+  "new_regression_methods": 27,
+  "local_tests_discovered": 357,
+  "local_tests_passed": 356,
+  "local_tests_skipped": 1,
+  "local_suites": [
+    {
+      "name": "D0–D2.1 + D3–D7 local regression",
+      "exit_code": 0,
+      "test_count": 352,
+      "skipped_count": 1,
+      "failure_count": 0,
+      "error_count": 0,
+      "passed_count": 351,
+      "pass": true,
+      "log_excerpt": "\n----------------------------------------------------------------------\nRan 352 tests in 2.897s\n\nOK (skipped=1)\n"
+    },
+    {
+      "name": "Legacy Preview smoke",
+      "exit_code": 0,
+      "test_count": 5,
+      "skipped_count": 0,
+      "failure_count": 0,
+      "error_count": 0,
+      "passed_count": 5,
+      "pass": true,
+      "log_excerpt": "\n----------------------------------------------------------------------\nRan 5 tests in 0.036s\n\nOK\n"
+    }
+  ],
+  "existing_scratch_smoke": {
+    "pass": true,
+    "steps": [
+      {
+        "step": "read_only_scan",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "guidance_dry_run",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "natural_intake",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "resume_navigation",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "capability_matrix",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_boundary",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_native_doctor",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_action_scope",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "handoff_task_list",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      }
+    ],
+    "repo_product_files_unchanged": true
+  },
+  "existing_practical_smoke": {
+    "pass": true,
+    "steps": 20,
+    "product_fixture_unchanged": true,
+    "providers_executed": false
+  },
+  "a1_fresh_cli_smoke": {
+    "passed": true,
+    "steps": 15,
+    "product_fixture_unchanged": true
+  },
+  "concat_guidance_preview": "READ_ONLY_DIFF_PREPARED",
+  "concat_protocol_installation": "NOT_PERFORMED",
+  "concat_code_patch": "NOT_APPLIED",
+  "live_cross_chat_delegation": "NOT_TESTED_A4_REQUIRED",
+  "native_source_review_in_helper": "NOT_IMPLEMENTED_BY_DESIGN_AGENT_USES_PROVIDER_TOOLS",
+  "helper_best_result": "SOURCE_REVIEW_REQUIRED_UNVERIFIED",
+  "write_authorized": false,
+  "trusted": false,
+  "native_certified": false,
+  "G2": "BLOCKED_NATIVE_MACOS_CERTIFICATION_REQUIRED",
+  "G5": "BLOCKED_NO_ENFORCED_PRODUCT_CODE_WRITER",
+  "schema_migration": false,
+  "new_dependencies": false,
+  "commit_push_deploy": false,
+  "old_zip_replaced": false,
+  "repo_integrity": {
+    "repo_file_hashes_unchanged": {
+      "AGENTS.md": true,
+      "CLAUDE.md": true,
+      "scripts/locales.py": true,
+      "scripts/tests/test_locales.py": true
+    },
+    "head_unchanged": true,
+    "status_unchanged": true,
+    "tracked_diff_unchanged": true,
+    "original_release_zip_sha256": "754986f19959428700528d97314e9b361bd6b64c5b04345aa15e8a0f771a396d"
+  },
+  "known_limits": [
+    "The protocol guides the agent; it is not OS enforcement or atomic revocation.",
+    "Diagnostic inputs are unverified reports, never native approval receipts.",
+    "No live provider, real human delegation or Concat edit tested by the local suites.",
+    "Claude and non-local hosts retain direct approval only.",
+    "A2-A6 are outside this acceptance."
+  ]
+}

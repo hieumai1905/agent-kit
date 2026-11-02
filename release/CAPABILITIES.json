@@ -1,0 +1,31 @@
+{
+  "product": "Agent Workflow System V3.0 Integration Candidate RC.1",
+  "security_grade": "NOT_CERTIFIED",
+  "runtime_mode": "READ_ONLY_AND_UNTRUSTED_DRAFTS",
+  "providers": {
+    "codex_desktop": "NOT_CERTIFIED",
+    "codex_cli": "NOT_CERTIFIED",
+    "claude_desktop": "NOT_CERTIFIED",
+    "claude_cli": "NOT_CERTIFIED"
+  },
+  "supported_now": [
+    "bounded repository discovery",
+    "natural-language intent hints and task search",
+    "versioned RIG/engineering/plan/work-graph drafts",
+    "non-authoritative evidence and review records",
+    "task context handoff packets",
+    "non-routing model advice",
+    "guidance-only installer with explicit apply and backups"
+  ],
+  "not_implemented_or_certified": [
+    "OS-isolated macOS trusted human approval UI",
+    "mandatory protected writer controlling third-party GUI/CLI apps",
+    "native source-write orchestration",
+    "safe shared-working-tree automated Git transactions",
+    "trusted test runner and attestation",
+    "automatic DoD pass and task completion",
+    "automatic provider model switching",
+    "production-grade install/upgrade of signed helper"
+  ],
+  "G2": "BLOCKED_NATIVE_MACOS_CERTIFICATION_REQUIRED"
+}

@@ -1,0 +1,2 @@
+# Optional dependency used by D2 Ed25519 verifier prototype; not an installer.
+cryptography>=42

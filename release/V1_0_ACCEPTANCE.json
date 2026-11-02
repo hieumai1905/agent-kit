@@ -1,0 +1,71 @@
+{
+  "product": "Agent Workflow Kit",
+  "version": "1.0.0",
+  "working_revision": "V1.0-FROZEN-2026-11-02",
+  "release_date": "2026-11-02",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "release_class": "PRACTICAL_ADVISORY_RELEASE_NOT_SECURITY_CERTIFIED",
+  "status": "READY_FOR_USE_IN_APPROVED_SCOPE",
+  "steps": {
+    "1_scope": "PASS",
+    "2_delivery": "PASS",
+    "3_relocated_payload_validation": "PASS"
+  },
+  "scope": "Codex local; one sequential writer; existing voluntary ADVISORY process",
+  "scope_document": "V1_0_SCOPE.md",
+  "quickstart": "../guides/00_BAT_DAU_V1_0.md",
+  "local_regression": {
+    "discovered": 434,
+    "passed": 433,
+    "skipped": 1,
+    "skip_note": "xattr test: Python has no os.setxattr on this host",
+    "failures": 0,
+    "errors": 0,
+    "scratch_smoke": "9/9 PASS",
+    "practical_smoke": "20/20 PASS",
+    "ran_from_extracted_archive": true
+  },
+  "package_validation": {
+    "passed_checks": 12,
+    "relocated_path_with_spaces": true,
+    "CRLF_no_final_newline_and_product_bytes_preserved": true,
+    "strict_install_rollback": "PASS",
+    "delegated_advisory_install_remove": "PASS",
+    "direct_advisory_install_remove": "PASS",
+    "manifest_before_and_after_local_runner": "PASS",
+    "archive_name": "Agent_Workflow_Kit_v1.0_2026-11-02.zip",
+    "archive_top_folder": "Agent_Workflow_V3_Repo_Kit",
+    "final_archive_checksum": "External .zip.sha256; final byte-level verification retained in delivery evidence outside ZIP, avoiding a self-referential checksum"
+  },
+  "existing_Concat_live_evidence": {
+    "path": "A4_RETRY_ACCEPTANCE.json",
+    "status": "PASS_FOR_BOUNDED_A4_RETRY_WITH_METADATA_ERRATUM",
+    "original_failure_retained": "A4_ACCEPTANCE.json",
+    "test_methods": 4,
+    "subcases_in_added_method": 8,
+    "new_live_run_for_v1_0": false
+  },
+  "Concat_unchanged_for_this_release": {
+    "observed_files": 1262,
+    "HEAD_index_status_and_diffs_unchanged": true,
+    "no_product_repo_tests_or_writes": true
+  },
+  "baseline_archives_unchanged": true,
+  "executable_file_changes": [
+    "tools/build_practical_release.py",
+    "tools/release_acceptance.py",
+    "agentflow_runtime/cli.py"
+  ],
+  "functional_scope_expansion": false,
+  "development_expansion": "FROZEN",
+  "post_release_policy": "Only user-requested fixes for observed blockers; do not activate historical backlog",
+  "supported_evidence_limit": "Observed Codex local pilot and read-only CLI handoff only; not all tasks/providers or concurrent writers",
+  "G2": "BLOCKED_FOR_NATIVE_SECURITY_CERTIFICATION",
+  "G5": "BLOCKED_FOR_TRUSTED_MUTATION_CERTIFICATION",
+  "canonical_DoD_auto_approval": false,
+  "mandatory_OS_boundary_available": false,
+  "native_security_certified": false,
+  "trusted": false,
+  "write_authorized": false,
+  "schema_dependencies_or_installed_policy_logic_changes": false
+}

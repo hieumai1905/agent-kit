@@ -1,0 +1,131 @@
+{
+  "status": "PASS_FOR_BOUNDED_A4_RETRY_WITH_METADATA_ERRATUM",
+  "working_revision": "A4-GUARD-REPAIR-2026-11-02",
+  "local_code_acceptance": "PASS",
+  "live_retry": "PASS_OBSERVED_MANAGED_FLOW",
+  "original_A4_verdict": "FAIL_RETAINED_UNCHANGED",
+  "task_id": "T-6b7f0246971142f0bb65",
+  "contract_revision": 2,
+  "contract_envelope_sha256": "bfd06a188a26a0d5b6d830eb22fafba1dd72f4fb3260ef04720089f90915a5ed",
+  "new_H_native_user_message": "01a19aa0-3068-7213-b69b-14f84b49ad0d",
+  "D_native_assistant_message": "msg_0de593b47b79623e016ae818ae2e4c819185f63025a2815f09",
+  "delegation_ended_on_executor_completion": true,
+  "guard_negative": {
+    "status": "PASS",
+    "age_seconds": 75.70799994468689,
+    "prepare_exit": 2,
+    "patch_called": false,
+    "recheck_called": false,
+    "unchanged_files": 1262,
+    "progress_revision_before": 1,
+    "progress_revision_after_guard": 1
+  },
+  "checkpoint_before_patch": {
+    "status": "PASS",
+    "ref": {
+      "task_id": "T-6b7f0246971142f0bb65",
+      "record_id": "DOC-51ec73794dda414fb8a9",
+      "revision": 3,
+      "sha256": "4fed59c112172fbfcb64f219cd2f165adb360fe887a9ef5d750c77ef366f5d8b",
+      "contract_sha256": "a0e27e0f8407759539ad43b9cc89083815b4ca6330f33a8a3711769b48303b92",
+      "contract_revision": 2
+    },
+    "source_age_seconds": 12.81500506401062,
+    "DB_created_at": "2026-11-02T05:03:03.836144+00:00",
+    "actual_DB_readback_epoch_before_patch": 1793595784.144005,
+    "trace": [
+      "decision_checkpoint_saved_and_read_back",
+      "decision_checkpoint_rechecked",
+      "provider_patch_called"
+    ]
+  },
+  "guarded_flow_sha256": "5da1957fa7ec6257aafe3abb5bdfacc96a79e2199b6ea971b0a6188794ee9668",
+  "native_outer_calls": {
+    "source_load": {
+      "native_call_id": "call_65537e493612493eb0b4fb3d9a30a4f1",
+      "timestamp": "2026-11-02T05:00:46.807Z",
+      "name": "exec",
+      "source_sha256": "7afd62883cde13ed73720874165bd134e07de2125dc0966e8f365b399b9f09b3"
+    },
+    "negative": {
+      "native_call_id": "call_89db9534e7fe480baa27eafd1d57222c",
+      "timestamp": "2026-11-02T05:01:36.221Z",
+      "name": "exec",
+      "source_sha256": "a801e13a4ab09cc98c331e7be0657d6026fe571e9b23cd06980295f90d00651c"
+    },
+    "fresh_review": {
+      "native_call_id": "call_98c9176426204ba2bf10ca247496c8a6",
+      "timestamp": "2026-11-02T05:02:51.187Z",
+      "name": "exec",
+      "source_sha256": "89102ca6f8ab6bff73ef7cc848da81790cbb449a79e5c9d91c3b1c02f72861de"
+    },
+    "valid": {
+      "native_call_id": "call_c9c0bc940922433a84b79207e844bf5a",
+      "timestamp": "2026-11-02T05:03:03.260Z",
+      "name": "exec",
+      "source_sha256": "d4ccc79154944f2583a20c9905d56574e7e77bfc499ec21a2a9d68d10d4de0ee"
+    }
+  },
+  "new_Python_methods": 21,
+  "JS_scenarios": 17,
+  "full_tests_discovered": 434,
+  "passed": 433,
+  "skipped": 1,
+  "concat": {
+    "test_methods": 4,
+    "new_subcases": 8,
+    "mutants_detected": 3,
+    "original_three_methods_byte_equal": true,
+    "changed_paths_vs_retry_baseline": [
+      "scripts/tests/test_locales.py"
+    ],
+    "observed_files": 1262,
+    "git_integrity": {
+      "HEAD": true,
+      "index_bytes": true,
+      "tracked_diff": true,
+      "staged_diff": true,
+      "status": true
+    },
+    "test_sha256": "f1c7d98293d46063eca36870598c04f34b406695779c06d1bcbab8ed49a2f010"
+  },
+  "fresh_session": {
+    "exit_code": 0,
+    "timed_out": false,
+    "elapsed_seconds": 90.149,
+    "repo_hashes_unchanged": true,
+    "task_and_progress_rows_unchanged": true,
+    "prompt_had_task_id_or_snapshot": false,
+    "new_cli_session": true,
+    "sandbox": "read-only",
+    "model_overridden": false,
+    "auth_changed": false,
+    "trusted": false,
+    "write_authorized": false
+  },
+  "metadata_erratum": {
+    "status": "DOCUMENTED_WITH_ORIGINAL_PRESERVED",
+    "field": "executor_latest_message_id",
+    "cause": "executor_latest_message_id incorrectly selected the first agent/user item in the first (internally chronological) turn using .find, instead of the latest item.",
+    "fresh_native_read_included_new_commentary": true,
+    "effect": "Metadata anchor inaccurate; actual fresh review and checked ordering confirmed in original provider call log. No extra patch performed.",
+    "evidence": "executor/ERRATUM-latest-anchor.json"
+  },
+  "canonical_lifecycle": "WAITING_APPROVAL",
+  "canonical_DoD": "NOT_VERIFIED",
+  "canonical_note": "Delegated ADVISORY observations do not create trusted core approval/completion.",
+  "source_writer_added": false,
+  "native_certified": false,
+  "trusted": false,
+  "write_authorized": false,
+  "stage_commit_push_deploy_performed": false,
+  "historical_baseline_archive_sha256": "754986f19959428700528d97314e9b361bd6b64c5b04345aa15e8a0f771a396d",
+  "limitations": [
+    "No OS mandatory write boundary or prevention of calling another writer tool",
+    "No authenticated approval adapter, atomic revocation, same-UID tamper protection or concurrent-writer guarantee",
+    "Observed Codex local pilot only; not a Claude/direct-mode or all-provider certification",
+    "No Rust/full application/CI/full translation inventory test in this test-only contract",
+    "Historical A4 failure retained; metadata erratum is not silently rewritten"
+  ],
+  "evidence_directory": "/Users/Documents/test-agent/workflow-improvements-2026-10-30/A4/retry-2026-11-02"
+}

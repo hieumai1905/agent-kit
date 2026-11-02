@@ -1,0 +1,223 @@
+{
+  "product": "Agent Workflow V3 Minimal Repo Integration Kit",
+  "version": "1.0.1",
+  "working_revision": "V1.0.1-BUGFIX-2026-11-02",
+  "release_class": "PRACTICAL_ADVISORY_RELEASE_NOT_SECURITY_CERTIFIED",
+  "release_scope": "Frozen practical v1.0.1 bugfix; Codex local, one sequential writer, voluntary ADVISORY process",
+  "epoch": 1793605550,
+  "host": {
+    "os": "Darwin",
+    "release": "25.6.0",
+    "machine": "arm64",
+    "python": "3.11.5"
+  },
+  "local_tests": [
+    {
+      "name": "D0–D2.1 + D3–D7 local regression",
+      "exit_code": 0,
+      "test_count": 456,
+      "skipped_count": 1,
+      "failure_count": 0,
+      "error_count": 0,
+      "passed_count": 455,
+      "pass": true,
+      "log_excerpt": "\n----------------------------------------------------------------------\nRan 456 tests in 9.077s\n\nOK (skipped=1)\n"
+    },
+    {
+      "name": "Legacy Preview smoke",
+      "exit_code": 0,
+      "test_count": 5,
+      "skipped_count": 0,
+      "failure_count": 0,
+      "error_count": 0,
+      "passed_count": 5,
+      "pass": true,
+      "log_excerpt": "\n----------------------------------------------------------------------\nRan 5 tests in 0.047s\n\nOK\n"
+    }
+  ],
+  "local_test_count": 461,
+  "local_test_passed_count": 460,
+  "local_test_skipped_count": 1,
+  "native_app_discovery": {
+    "probe_version": "2.0.0",
+    "probe_kind": "READ_ONLY_DISCOVERY",
+    "host_os": "Darwin",
+    "host_release": "25.6.0",
+    "host_arch": "arm64",
+    "generated_epoch": 1793605550,
+    "spotlight_status": "SKIPPED",
+    "providers": {
+      "codex_cli": {
+        "provider": "codex_cli",
+        "mode": "NOT_CERTIFIED",
+        "approval_provenance": "NOT_TESTED",
+        "mandatory_write_boundary": "NOT_TESTED",
+        "native_negative_tests": "NOT_TESTED",
+        "same_worktree_multiwriter": "NOT_TESTED",
+        "executable_present": true,
+        "cli": {
+          "discovery": "ON_PATH",
+          "executable_present_on_path": true,
+          "binary_location": "~/.local/bin/codex",
+          "version": "NOT_READ_NO_PROCESS_LAUNCHED"
+        }
+      },
+      "codex_desktop": {
+        "provider": "codex_desktop",
+        "mode": "NOT_CERTIFIED",
+        "approval_provenance": "NOT_TESTED",
+        "mandatory_write_boundary": "NOT_TESTED",
+        "native_negative_tests": "NOT_TESTED",
+        "same_worktree_multiwriter": "NOT_TESTED",
+        "executable_present": null,
+        "app_bundle_detected": true,
+        "bundles": [
+          {
+            "bundle_path": "/Applications/ChatGPT.app",
+            "bundle_identifier": "com.openai.codex",
+            "app_name": "ChatGPT",
+            "short_version": "26.1027.51404",
+            "build_version": "23880",
+            "metadata": "OBSERVED_NOT_CERTIFIED"
+          }
+        ]
+      },
+      "claude_cli": {
+        "provider": "claude_cli",
+        "mode": "NOT_CERTIFIED",
+        "approval_provenance": "NOT_TESTED",
+        "mandatory_write_boundary": "NOT_TESTED",
+        "native_negative_tests": "NOT_TESTED",
+        "same_worktree_multiwriter": "NOT_TESTED",
+        "executable_present": true,
+        "cli": {
+          "discovery": "ON_PATH",
+          "executable_present_on_path": true,
+          "binary_location": "~/.local/bin/claude",
+          "version": "NOT_READ_NO_PROCESS_LAUNCHED"
+        }
+      },
+      "claude_desktop": {
+        "provider": "claude_desktop",
+        "mode": "NOT_CERTIFIED",
+        "approval_provenance": "NOT_TESTED",
+        "mandatory_write_boundary": "NOT_TESTED",
+        "native_negative_tests": "NOT_TESTED",
+        "same_worktree_multiwriter": "NOT_TESTED",
+        "executable_present": null,
+        "app_bundle_detected": true,
+        "bundles": [
+          {
+            "bundle_path": "/Applications/Claude.app",
+            "bundle_identifier": "com.anthropic.claudefordesktop",
+            "app_name": "Claude",
+            "short_version": "3.6556.2",
+            "build_version": "3.6556.2",
+            "metadata": "OBSERVED_NOT_CERTIFIED"
+          }
+        ]
+      }
+    },
+    "enforced_available": false,
+    "status": "NOT_CERTIFIED",
+    "G2": "BLOCKED_NATIVE_MACOS_CERTIFICATION_REQUIRED",
+    "warnings": [
+      "Codex Desktop may be the new ChatGPT.app (bundle ID com.openai.codex).",
+      "CLI not found on PATH does not prove it is not installed elsewhere.",
+      "App bundle metadata is not a signature verification or security proof.",
+      "Native approval provenance and mandatory OS write blocking remain NOT_TESTED.",
+      "No credentials, repo files, settings, or agent/model sessions were accessed."
+    ]
+  },
+  "local_tests_pass": true,
+  "scratch_repo_smoke": {
+    "pass": true,
+    "steps": [
+      {
+        "step": "read_only_scan",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "guidance_dry_run",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "natural_intake",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "resume_navigation",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "capability_matrix",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_boundary",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_native_doctor",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_action_scope",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "handoff_task_list",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      }
+    ],
+    "repo_product_files_unchanged": true
+  },
+  "practical_e2e_smoke": {
+    "pass": true,
+    "steps": 20,
+    "product_fixture_unchanged": true,
+    "providers_executed": false
+  },
+  "guides_present": true,
+  "G0": "HISTORICAL_LOCAL_PASS",
+  "G1": "LOCAL_PASS",
+  "G2": "BLOCKED_NATIVE_MACOS_CERTIFICATION_REQUIRED",
+  "G3": "PARTIAL_LOCAL_RIG_AND_NATURAL_RESUME_NOT_GUI_CERTIFIED",
+  "G4": "PARTIAL_CONTRACT_LINKED_DRAFT_PLANNING",
+  "G5": "BLOCKED_NO_ENFORCED_PRODUCT_CODE_WRITER",
+  "G6": "PARTIAL_LOCAL_HANDOFF_MODEL_ADVISOR_NO_TRUSTED_COMPLETION",
+  "G7": "PARTIAL_REPO_GUIDANCE_INSTALL_E2E_PASS_NATIVE_NOT_CERTIFIED",
+  "si_wave_scope": "SI01-SI14_PRESERVED",
+  "delivery_scope": "D3_D7_PRACTICAL_REPO_INTEGRATION",
+  "ea_wave_scope": "NO_NEW_EA01_EA16_IMPLEMENTATION",
+  "trusted_approval_available": false,
+  "mandatory_write_boundary_available": false,
+  "same_worktree_multiwriter_certified": false,
+  "user_native_acceptance_required_to_claim_final_release": true,
+  "final_release_definition": "Legacy FINAL/ENFORCED security certification; not the approved practical v1.0 distribution",
+  "user_action_now": "Read guides/00_BAT_DAU_V1_0.md; inspect existing guidance before any installation or relocation",
+  "notes": [
+    "PASS of local Python tests does not certify macOS GUI/CLI controls.",
+    "This local runner launches no provider app/model and changes only disposable scratch repos; separate historical A4 live results are in release/A4_RETRY_ACCEPTANCE.json.",
+    "ADVISORY is optional, opt-in, not OS-enforced; STRICT is default.",
+    "This report is generated by an unprivileged process and is not a protected attestation."
+  ]
+}

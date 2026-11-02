@@ -1,0 +1,234 @@
+{
+  "scope": "A2_STATUS_PRESENTATION_ONLY",
+  "date": "2026-11-02",
+  "working_revision": "A1+A2-2026-11-02",
+  "local_acceptance": "PASS",
+  "new_regression_methods": 33,
+  "acceptance_groups": {
+    "A2_1_separate_reported_work_provenance_verification_and_canonical_state": "PASS",
+    "A2_2_contract_and_observed_file_freshness_without_synthetic_verification": "PASS",
+    "A2_3_preserve_decisions_stop_reports_legacy_data_and_old_interfaces": "PASS",
+    "A2_4_fresh_CLI_smoke_scope_preservation_and_full_regression": "PASS"
+  },
+  "tests_discovered": 390,
+  "tests_passed": 389,
+  "tests_skipped": 1,
+  "local_suites": [
+    {
+      "name": "D0–D2.1 + D3–D7 local regression",
+      "exit_code": 0,
+      "test_count": 385,
+      "skipped_count": 1,
+      "failure_count": 0,
+      "error_count": 0,
+      "passed_count": 384,
+      "pass": true,
+      "log_excerpt": "\n----------------------------------------------------------------------\nRan 385 tests in 4.024s\n\nOK (skipped=1)\n"
+    },
+    {
+      "name": "Legacy Preview smoke",
+      "exit_code": 0,
+      "test_count": 5,
+      "skipped_count": 0,
+      "failure_count": 0,
+      "error_count": 0,
+      "passed_count": 5,
+      "pass": true,
+      "log_excerpt": "\n----------------------------------------------------------------------\nRan 5 tests in 0.039s\n\nOK\n"
+    }
+  ],
+  "existing_scratch_smoke": {
+    "pass": true,
+    "steps": [
+      {
+        "step": "read_only_scan",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "guidance_dry_run",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "natural_intake",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "resume_navigation",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "capability_matrix",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_boundary",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_native_doctor",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "si_action_scope",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      },
+      {
+        "step": "handoff_task_list",
+        "exit_code": 0,
+        "pass": true,
+        "log_excerpt": ""
+      }
+    ],
+    "repo_product_files_unchanged": true
+  },
+  "existing_practical_smoke": {
+    "pass": true,
+    "steps": 20,
+    "product_fixture_unchanged": true,
+    "providers_executed": false
+  },
+  "new_cli_smoke": {
+    "pass": true,
+    "step_count": 9,
+    "steps": [
+      {
+        "name": "legacy task-status",
+        "args": [
+          "task-status",
+          "T-9f291edd307d4d3c8bec"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      },
+      {
+        "name": "legacy handoff",
+        "args": [
+          "handoff",
+          "T-9f291edd307d4d3c8bec"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      },
+      {
+        "name": "legacy resume",
+        "args": [
+          "resume",
+          "Locale pilot status replay"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      },
+      {
+        "name": "legacy review",
+        "args": [
+          "review",
+          "T-9f291edd307d4d3c8bec"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      },
+      {
+        "name": "legacy final-review",
+        "args": [
+          "final-review",
+          "T-9f291edd307d4d3c8bec"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      },
+      {
+        "name": "bound report",
+        "args": [
+          "task-status",
+          "T-9f291edd307d4d3c8bec"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      },
+      {
+        "name": "actual file changed",
+        "args": [
+          "task-status",
+          "T-9f291edd307d4d3c8bec"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      },
+      {
+        "name": "contract changed",
+        "args": [
+          "task-status",
+          "T-9f291edd307d4d3c8bec"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      },
+      {
+        "name": "canonical task is unchanged by views",
+        "args": [
+          "task",
+          "T-9f291edd307d4d3c8bec"
+        ],
+        "exit_code": 0,
+        "logical_state_and_source_unchanged": true
+      }
+    ],
+    "historical_report_replayed_in_disposable_state": true,
+    "real_concat_state_touched": false,
+    "source_and_logical_state_unchanged_by_views": true,
+    "reported_command_executed": false,
+    "providers_executed": false,
+    "write_authorized": false
+  },
+  "repo_integrity": {
+    "repo_file_hashes_unchanged": {
+      "AGENTS.md": true,
+      "CLAUDE.md": true,
+      "scripts/locales.py": true,
+      "scripts/tests/test_locales.py": true
+    },
+    "repo_head_unchanged": true,
+    "repo_status_unchanged": true,
+    "repo_tracked_diff_unchanged": true,
+    "a1_installer_unchanged": true,
+    "a1_protocol_and_diagnostic_unchanged": true,
+    "old_release_zip_sha256": "754986f19959428700528d97314e9b361bd6b64c5b04345aa15e8a0f771a396d"
+  },
+  "canonical_lifecycle_modified_by_view": false,
+  "approval_or_DoD_promoted": false,
+  "tests_rerun_by_view": false,
+  "new_schema_migration": false,
+  "new_dependencies": false,
+  "write_authorized": false,
+  "native_certified": false,
+  "G2": "BLOCKED_NATIVE_MACOS_CERTIFICATION_REQUIRED",
+  "G5": "BLOCKED_NO_ENFORCED_PRODUCT_CODE_WRITER",
+  "concat_source_and_installed_guidance": "UNCHANGED",
+  "concat_live_state": "NOT_ACCESSED_BY_NEW_HELPERS",
+  "A3": "NOT_STARTED",
+  "A4": "NOT_RUN",
+  "known_limits": [
+    "Reported progress and provenance remain UNVERIFIED; native source review is not performed by A2.",
+    "CURRENT is a match of declared dependencies and contract, not full coverage or a test run.",
+    "Observations are bounded snapshots, not atomic locks or trusted attestations.",
+    "Source refs are read from PROGRESS only; NOT_REPORTED does not mean no human decision exists.",
+    "Existing helper initialization may create/migrate external state on first use; no new migration added.",
+    "A3 continuity and A4 live delegated coding remain separate."
+  ]
+}

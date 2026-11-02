@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "release_claim": "G2_NOT_CERTIFIED",
+  "test_tiers": [
+    "TESTED_PROTOTYPE",
+    "TESTED_COOPERATIVE",
+    "MAC_SYNTHETIC_OBSERVED",
+    "BYPASS_OBSERVED_AND_LAB_MITIGATED",
+    "PARTIAL_PROTOTYPE",
+    "DESIGN_REQUIRED",
+    "NATIVE_REQUIRED"
+  ],
+  "items": [
+    {
+      "id": "T01",
+      "risk": "Unsigned/untrusted chat approval",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "native human consent proof"
+    },
+    {
+      "id": "T02",
+      "risk": "Replay of signed challenge",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "trusted nonce store"
+    },
+    {
+      "id": "T03",
+      "risk": "Wrong SPEC/repo/session binding",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "trusted registry"
+    },
+    {
+      "id": "T04",
+      "risk": "Agent changes trusted key store",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "separate OS identity"
+    },
+    {
+      "id": "T05",
+      "risk": "Agent mutates SQLite approval state",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "protected control plane"
+    },
+    {
+      "id": "T06",
+      "risk": "Disabling hooks or failing hook",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "mandatory OS write denial"
+    },
+    {
+      "id": "T07",
+      "risk": "Direct shell write to repository",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "sandbox/ACL proof"
+    },
+    {
+      "id": "T08",
+      "risk": "Built-in patch/write tool",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "all tool path coverage"
+    },
+    {
+      "id": "T09",
+      "risk": "MCP/plug-in alternate write path",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "all tool path coverage"
+    },
+    {
+      "id": "T10",
+      "risk": "Subprocess/editor spawned write",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "descendant constraints"
+    },
+    {
+      "id": "T11",
+      "risk": "Pre-opened write FD inherited",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "fd inheritance audit"
+    },
+    {
+      "id": "T12",
+      "risk": "Direct outside-path write blocked",
+      "evidence_status": "MAC_SYNTHETIC_OBSERVED",
+      "missing_proof": "native app proof"
+    },
+    {
+      "id": "T13",
+      "risk": "Preexisting symlink to protected file",
+      "evidence_status": "MAC_SYNTHETIC_OBSERVED",
+      "missing_proof": "native app proof"
+    },
+    {
+      "id": "T14",
+      "risk": "Traversal ../ path",
+      "evidence_status": "MAC_SYNTHETIC_OBSERVED",
+      "missing_proof": "native app proof"
+    },
+    {
+      "id": "T15",
+      "risk": "Preexisting hardlink to protected inode",
+      "evidence_status": "BYPASS_OBSERVED_AND_LAB_MITIGATED",
+      "missing_proof": "block direct write and broker nlink"
+    },
+    {
+      "id": "T16",
+      "risk": "Hardlink created after sandbox entry",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "mandatory file-link boundary"
+    },
+    {
+      "id": "T17",
+      "risk": "Symlink in intermediate directory",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "native protected namespace"
+    },
+    {
+      "id": "T18",
+      "risk": "Hardlink alias target for broker",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "exclusive OS broker"
+    },
+    {
+      "id": "T19",
+      "risk": "Unicode normalization and casefold aliases",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "APFS case mode native test"
+    },
+    {
+      "id": "T20",
+      "risk": "Rename race between validation/apply",
+      "evidence_status": "PARTIAL_PROTOTYPE",
+      "missing_proof": "protected parent namespace"
+    },
+    {
+      "id": "T21",
+      "risk": "Parent directory moved outside root",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "protected directory owner"
+    },
+    {
+      "id": "T22",
+      "risk": "Hardlink/rename of broker lock",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "protected resource lock"
+    },
+    {
+      "id": "T23",
+      "risk": "FIFO, directory, special-file target",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "native filesystem coverage"
+    },
+    {
+      "id": "T24",
+      "risk": "xattr/ACL/file flags preservation",
+      "evidence_status": "PARTIAL_PROTOTYPE",
+      "missing_proof": "mac ACL validation"
+    },
+    {
+      "id": "T25",
+      "risk": "Stale file content version",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "trusted baseline origin"
+    },
+    {
+      "id": "T26",
+      "risk": "Stale writer fencing epoch",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "protected live lease service"
+    },
+    {
+      "id": "T27",
+      "risk": "Concurrent writers same file",
+      "evidence_status": "TESTED_COOPERATIVE",
+      "missing_proof": "native 2 writer blocking"
+    },
+    {
+      "id": "T28",
+      "risk": "Concurrent writers same API contract",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "contract lease"
+    },
+    {
+      "id": "T29",
+      "risk": "Git index/staging/commit mixing",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "git transaction broker"
+    },
+    {
+      "id": "T30",
+      "risk": "Test database/build artifacts collisions",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "test resource isolation"
+    },
+    {
+      "id": "T31",
+      "risk": "Unattributed user/manual edit",
+      "evidence_status": "DESIGN_REQUIRED",
+      "missing_proof": "post-write reconciliation"
+    },
+    {
+      "id": "T32",
+      "risk": "Crash mid-file replace",
+      "evidence_status": "PARTIAL_PROTOTYPE",
+      "missing_proof": "native fsync/recovery test"
+    },
+    {
+      "id": "T33",
+      "risk": "Crash mid-DB + filesystem",
+      "evidence_status": "DESIGN_REQUIRED",
+      "missing_proof": "durable saga/reconciliation"
+    },
+    {
+      "id": "T34",
+      "risk": "Approval revoked during pending write",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "in-flight revocation/fencing"
+    },
+    {
+      "id": "T35",
+      "risk": "Provider update changes tool paths",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "pin app build and recertify"
+    },
+    {
+      "id": "T36",
+      "risk": "Production/write/remote side effects",
+      "evidence_status": "DESIGN_REQUIRED",
+      "missing_proof": "action-specific grants"
+    },
+    {
+      "id": "T37",
+      "risk": "Network/AppleScript/GUI automation bypass",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "OS capability proof"
+    },
+    {
+      "id": "T38",
+      "risk": "Repository ancestor writable by agent",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "separate OS identity/ACL"
+    },
+    {
+      "id": "T39",
+      "risk": "Malformed cryptographic intent payload",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "trusted issuer setup"
+    },
+    {
+      "id": "T40",
+      "risk": "Bash command classifying side effects",
+      "evidence_status": "TESTED_PROTOTYPE",
+      "missing_proof": "cannot replace OS enforcement"
+    },
+    {
+      "id": "T41",
+      "risk": "Case-sensitive/case-insensitive aliases on APFS",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "APFS variants"
+    },
+    {
+      "id": "T42",
+      "risk": "Stale approval following policy update",
+      "evidence_status": "NATIVE_REQUIRED",
+      "missing_proof": "trusted policy registry"
+    }
+  ]
+}
