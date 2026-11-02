@@ -15,7 +15,8 @@ canonical Git root; nếu root ở cha, có nhiều repo hoặc chưa có Git, l
 đích trước khi apply. Không tự nâng root, chọn repo con, git init hoặc cài hàng loạt.
 
 Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.1.0-rc2.
-Resolve commit thật của tag từ remote, đối chiếu HEAD và ghi lại SHA đã dùng.
+Commit bắt buộc phải khớp: 93160d9d7d94c73e4a795344184f2f6b877616eb.
+Đối chiếu HEAD và commit của tag; ghi lại SHA thực đã dùng.
 Clone bằng git clone --branch v1.1.0-rc2 --depth 1 vào
 ~/.local/share/agent-workflow-kit/v1.1.0-rc2 hoặc vị trí bền vững ngoài đích.
 Nếu đã có clone, kiểm origin, tag/commit và thay đổi local trước khi dùng;
