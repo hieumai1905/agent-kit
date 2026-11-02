@@ -126,7 +126,10 @@ class GuidanceInstaller:
             self.command+=' --state-home '+shlex.quote(str(home.resolve()))
         self.content=self._content(mode,delegated_advisory=delegated_advisory)
 
-    def _content(self,mode,*,delegated_advisory=False,continuity=True,guarded_flow=True):
+    def _content(self,mode,*,delegated_advisory=False,continuity=True,guarded_flow=True,lean=True):
+        if lean and not delegated_advisory and continuity and guarded_flow:
+            from .lean_guidance import render
+            return render(self.command,mode,delegated_advisory)
         state='STRICT / READ-ONLY' if mode=='strict' else 'ADVISORY / USER-APPROVED CODING'
         if mode=='strict':
             guard='- STRICT: G2 is not certified. Do not write product code, run side-effecting tests or mutate Git using this kit. Propose changes and wait; no approval in this kit can unlock writes.'
@@ -182,6 +185,17 @@ For coding: first show a concise scoped Task Contract, wait for a genuine user d
     def _known(self,name,actual):
         actual,_=_split_prefix(actual)
         def canonical(block):
+            # Lean blocks also contain a bare helper prefix and on-demand doc paths.
+            for match in re.finditer(r'`([^`\n]+)`',block):
+                try:parts=shlex.split(match.group(1))
+                except ValueError:continue
+                if (len(parts)>=4 and parts[0]=='python3' and Path(parts[1]).is_absolute()
+                        and parts[1].endswith('/tools/agentflow.py') and parts[2:4]==['--repo',str(self.repo)]):
+                    offset=6 if len(parts)>=6 and parts[4]=='--state-home' and Path(parts[5]).is_absolute() else 4
+                    suffix=parts[offset:]
+                    if suffix in ([],['resume','specific topic','--compact']):
+                        block=block.replace(match.group(0),'`'+self.command+(' resume "specific topic" --compact' if suffix else '')+'`')
+                        block=block.replace(str(Path(parts[1]).parents[1])+'/docs/',str(Path(__file__).resolve().parents[1])+'/docs/')
             # Only normalize the two generated helper commands. All policy text
             # must still match exactly; custom rules remain protected.
             def helper(match):
@@ -196,6 +210,14 @@ For coding: first show a concise scoped Task Contract, wait for a genuine user d
                 return '`'+self.command+' '+parts[-2]+' '+shlex.quote(parts[-1])+'`'
             return re.sub(r'`([^`\n]+)`',helper,block).strip('\n')
         variants=[self._content(m)[name].strip('\n') for m in MODES]
+        from .lean_guidance import render
+        variants.extend(render(self.command,m,legacy_rc1=True)[name].strip('\n') for m in MODES)
+        for m in MODES:
+            for continuity in (True,False):
+                variants.append(self._content(m,continuity=continuity,lean=False)[name].strip('\n'))
+        for continuity in (True,False):
+            for guarded in (True,False):
+                variants.append(self._content('advisory',delegated_advisory=True,continuity=continuity,guarded_flow=guarded,lean=False)[name].strip('\n'))
         variants.append(self._content('advisory',delegated_advisory=True)[name].strip('\n'))
         variants.extend(self._content(m,continuity=False)[name].strip('\n') for m in MODES)
         variants.append(self._content('advisory',delegated_advisory=True,continuity=False)[name].strip('\n'))

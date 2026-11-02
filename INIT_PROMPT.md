@@ -1,65 +1,66 @@
 # Một prompt khởi tạo
 
-Mở terminal của agent tại thư mục dự án cần dùng, rồi gửi nguyên khối dưới đây. Prompt dùng chung cho các dự án; không cần thay tên hoặc điền đường dẫn. **Thư mục làm việc hiện tại lúc nhận prompt là đích mặc định**, được chốt trước khi clone hoặc đổi thư mục.
+Mở agent tại thư mục dự án rồi gửi nguyên khối dưới đây. Agent tự clone và setup; sau đó bạn giao việc bình thường. **Thư mục làm việc hiện tại lúc nhận prompt là đích mặc định**, được chốt trước khi clone hoặc đổi thư mục.
 
-Prompt hiện hành được duy trì trên `main`; runtime được pin ở tag `v1.0.2`. Các tag và ZIP đã phát hành giữ nguyên.
+Bản hiện hành: **v1.1.0-rc2**, bản thử đã công bố để kiểm thử thực tế. Runtime được pin theo tag; các tag cũ giữ nguyên. Prompt hiện hành được duy trì trên `main`.
 
 ```text
-Thiết lập và áp dụng Agent Workflow Kit v1.0.2 cho thư mục làm việc
-hiện tại của agent, để sau đó tôi chỉ cần giao việc bình thường.
+Thiết lập và áp dụng Agent Workflow Kit v1.1.0-rc2 cho thư mục làm việc
+hiện tại của agent, để sau đó tôi giao việc bình thường.
 
-Trước khi clone hoặc đổi thư mục, chạy pwd -P (hoặc tương đương) và ghi
-lại đường dẫn tuyệt đối thành TARGET_CWD. Đây là đích setup mặc định:
-dùng cùng đường dẫn đó cho --repo và vị trí AGENTS.md, CLAUDE.md.
-Không suy đích từ tên chat, repo từng làm hoặc thư mục clone kit.
-Đối chiếu Git root tại TARGET_CWD. Nếu Git root là thư mục cha, hoặc có
-nhiều repo đích còn mơ hồ, hỏi tôi chốt phạm vi trước khi apply; không tự
-nâng lên thư mục cha, chọn repo con hay cài hàng loạt. Nếu TARGET_CWD
-chưa thuộc Git repo, giữ nguyên đích và không tự chạy git init.
+Trước khi clone hoặc đổi thư mục, chạy pwd -P và ghi đường dẫn tuyệt đối
+thành TARGET_CWD. Đây là đích mặc định cho --repo, AGENTS.md và CLAUDE.md.
+Không suy đích từ tên chat, repo từng làm hoặc thư mục chứa kit. Đối chiếu
+canonical Git root; nếu root ở cha, có nhiều repo hoặc chưa có Git, làm rõ
+đích trước khi apply. Không tự nâng root, chọn repo con, git init hoặc cài hàng loạt.
 
-Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.0.2.
-Commit phải khớp: d2083cf2d2901e966f2397c85c6c6d907cb6dbfb.
-Tự clone bằng git clone --branch v1.0.2 --depth 1 vào
-~/.local/share/agent-workflow-kit/v1.0.2 hoặc vị trí bền vững ngoài đích.
-Nếu đã có clone, kiểm origin/tag/commit và thay đổi local trước khi dùng;
-không reset/pull đè nội dung hoặc tự chuyển sang main/latest.
+Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.1.0-rc2.
+Resolve commit thật của tag từ remote, đối chiếu HEAD và ghi lại SHA đã dùng.
+Clone bằng git clone --branch v1.1.0-rc2 --depth 1 vào
+~/.local/share/agent-workflow-kit/v1.1.0-rc2 hoặc vị trí bền vững ngoài đích.
+Nếu đã có clone, kiểm origin, tag/commit và thay đổi local trước khi dùng;
+không reset/pull đè hoặc tự chuyển main/latest khi tag không dùng được.
+Đọc release/RELEASE.json, kiểm version 1.1.0-rc2 và chạy tools/verify_release.py.
+Thiếu Git/Python 3.11+/quyền/network thì báo điều kiện thiếu, không tự cài thêm.
 
-Tôi chọn ADVISORY, duyệt contract trực tiếp trong chat, một agent ghi tuần tự.
-Tôi cho phép clone kit ra ngoài dự án, khởi tạo state/backup bên ngoài và làm
-mới managed workflow trong AGENTS.md, CLAUDE.md theo BOOTSTRAP.md của tag này.
-Hãy tự thực hiện đầy đủ quy trình setup đó, không hỏi lại các bước đã được
-ủy quyền; giữ nguyên quy tắc riêng và mọi thay đổi code/Git đang có.
+Tôi chọn ADVISORY, duyệt contract trực tiếp trong chat, một writer. Tôi cho
+phép setup đúng phạm vi: clone/runtime/state/backup ngoài project; preview
+rồi làm mới managed workflow trong AGENTS.md và CLAUDE.md; giữ nguyên quy
+tắc riêng; lập inventory và thêm đúng guidance kit-only chưa tracked vào
+Git local exclude. Không sửa product .gitignore, hook/Husky, global config,
+index/source, model/auth/settings; không untrack/unstage/skip-worktree hoặc
+viết đè managed block tùy biến. Không hỏi lại các bước setup đã được ủy quyền.
 
-Toàn bộ artifact chỉ phục vụ kit phải là local-only, không nằm trong commit
-của dự án. Đặt clone, state/DB, backup, contract/checkpoint của kit, log,
-báo cáo, inventory và file tạm ngoài working tree. Phân biệt chúng với
-contract/docs/tests của sản phẩm: không ignore nhầm dữ liệu cần commit.
-Tôi cho phép thêm đúng đường dẫn file kit-only chưa tracked vào Git local
-exclude, lấy vị trí bằng git rev-parse --git-path info/exclude; ví dụ
-/AGENTS.md, /CLAUDE.md ở root. Giữ nguyên các rule có trước, không dùng glob
-rộng, không sửa .gitignore của sản phẩm, global config hoặc hook/Husky.
-Nếu file đã tracked, chứa quy tắc sản phẩm hoặc artifact kit đã staged,
-không coi ignore là bảo vệ, không tự untrack/unstage/skip-worktree; báo
-BLOCKED để chốt cách xử lý. Lưu inventory artifact ngoài repo và lưu quy
-tắc local-only này ngoài managed block của AGENTS.md/CLAUDE.md để phiên
-sau đọc được; không thay mẫu workflow bên trong block của kit.
-Trước mọi stage/commit được tôi duyệt riêng, đối chiếu inventory, phạm vi
-task và nội dung INDEX thực tế; kiểm lại sau staging. Nếu có artifact kit
-hoặc managed block lọt vào index, kể cả do force-add/đổi tên, dừng trước
-commit và báo rõ. Không tự dùng git add -f hoặc stage hàng loạt.
+Đọc BOOTSTRAP.md của đúng tag và chỉ dẫn/override đang hiệu lực. Dùng setup
+--mode advisory --upgrade: review preview rồi --apply cùng --repo/state-home.
+Nếu nâng cấp, giữ state-home, task/history và các thay đổi đang có; không
+xóa hoặc tạo state mới thay lịch sử. Giữ protocol delegated đã chọn trước
+bằng flag tương ứng; setup không tạo/gia hạn H/D. Tracked/mixed guidance
+hoặc conflict phải báo BLOCKED cùng file/lý do; không bypass bằng ignore.
 
-Bắt buộc kiểm tra chỉ dẫn/override đang có hiệu lực, dry-run rồi nâng cấp
-đúng mẫu kit, đọc lại cả hai file và xác nhận helper path, version, mode,
-checkpoint/contract/test/handoff đều đúng. Không chỉ clone rồi báo xong;
-không chạy /init để tạo một workflow khác. Nếu custom block hoặc override
-xung đột, báo BLOCKED cùng file/lý do cụ thể, không ghi đè hay báo READY giả.
+Đọc lại cả hai file sau cài; đối chiếu helper path, version, mode, đích,
+state và việc áp dụng trong session hiện tại. Kiểm manifest/doctor,
+inventory/artifacts check, baseline source/HEAD/index và backup transaction.
+SETUP_LOCAL_READY chỉ là kết quả local. Chỉ báo SETUP_READY sau readback
+và xác nhận session đang theo workflow; nếu chưa áp dụng được thì báo
+NEEDS_SESSION_REFRESH hoặc BLOCKED, không READY giả.
 
-Sau setup, đọc và áp dụng workflow vừa cài cho chat này; chỉ báo SETUP_READY
-khi các điều kiện trong BOOTSTRAP.md và kiểm local-only ở trên đều đạt,
-kèm TARGET_CWD, project path, inventory/exclude và staged check thực tế.
-Nếu session chưa áp dụng được, báo
-NEEDS_SESSION_REFRESH hoặc BLOCKED. Không sửa source, thêm dependency,
-đổi settings/quyền/model, tự bật ủy quyền H/D hoặc stage/commit/push/deploy.
-Từ yêu cầu tiếp theo tôi sẽ mô tả công việc bình thường; bạn tự làm preflight,
-trình contract ngắn chờ tôi duyệt, rồi checkpoint trước patch, test và bàn giao.
+Mọi artifact chỉ phục vụ kit phải local-only và ngoài working tree, trừ
+hai guidance kit-only được local exclude. Theo dõi cả file sinh thêm và
+kiểm INDEX trước/sau staging được duyệt riêng và trước bàn giao. Phân biệt
+file sản phẩm với file vận hành kit; nội dung trùng fingerprint cần bằng
+chứng nguồn gốc gắn đúng path/hash. Path kit đã biết, marker và state vẫn
+phải chặn; thiếu bằng chứng thì dừng phân loại. Không stage/commit/push/deploy
+hoặc sửa source trong lần setup này.
+
+Sau setup: hỏi/khảo sát độc lập trả lời trực tiếp; việc code nhỏ dùng
+contract ngắn, việc phức tạp mới phân tích sâu. Chờ tôi duyệt đúng contract,
+lưu/readback quyết định và recheck trước patch, sửa đúng scope, chạy test
+thực và bàn giao. Dùng work start/checkpoint/finish, resume --compact khi
+cần; tự xử lý JSON/IDs và tái sử dụng binding/revision vừa đọc trong chat.
+Finish đã lưu handoff thì không tạo checkpoint bàn giao lặp. Verification
+có binding của lần kiểm riêng; nguồn/contract đổi phải revalidate, không
+gắn PASS cũ sang nguồn mới. State là báo cáo chưa xác thực, không khôi phục
+quyền từ checkpoint hoặc tự chốt giả định sản phẩm. Từ yêu cầu tiếp theo
+tôi sẽ giao việc bằng ngôn ngữ bình thường.
 ```

@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import closing
 from .records import WorkflowRecords
 from .status import task_status
-from .continuity import resume_brief
+from .continuity import resume_brief, last_reported_verification
 
 class HandoffBuilder:
     def __init__(self,repo,state_home=None,*,initialize=True):
@@ -34,6 +34,7 @@ class HandoffBuilder:
                 bound_revision in (None,contract['revision']) else 'STALE')
         contract_content=contract['content']
         display=task_status(self.records,task_id,task=task,contract=contract,progress_record=pieces.get('PROGRESS'))
+        verification=last_reported_verification(self.records,task_id,contract,pieces.get('PROGRESS'))
         return {'task':{'id':task_id,'title':task['title'],'state':task['lifecycle'],
                         'revision':task['revision'],'approved':False if not task['approved_contract_revision'] else
                           'CLAIMED_IN_DATABASE_NOT_TRUSTED_IN_THIS_RUNTIME'},
@@ -44,7 +45,8 @@ class HandoffBuilder:
                 'relevant_artifacts':compact,
                 'artifact_freshness':freshness,
                 'status_view':display,
-                'resume_brief':resume_brief(pieces.get('PROGRESS'),display),
+                'resume_brief':resume_brief(pieces.get('PROGRESS'),display,verification),
+                'last_reported_verification':verification,
                 'stale_artifacts':[k for k,v in freshness.items() if v=='STALE'],
                 'next_action':('Revalidate stale or unbound plans against the current contract; review Git and pending gates before tool effects'
                                if any(v!='CURRENT' for v in freshness.values()) else

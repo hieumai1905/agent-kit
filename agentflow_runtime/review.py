@@ -6,7 +6,7 @@ from .records import WorkflowRecords
 from .status import task_status
 
 class EvidenceReviewer:
-    def __init__(self,repo,state_home=None):self.records=WorkflowRecords(repo,state_home)
+    def __init__(self,repo,state_home=None,*,initialize=True):self.records=WorkflowRecords(repo,state_home,initialize=initialize)
 
     def evaluation(self,task_id:str)->dict:
         core=self.records.core

@@ -17,7 +17,7 @@ ALLOWED_KINDS = frozenset({
     'TECHNICAL_PLAN','WORK_GRAPH','ENGINEERING_PROFILE','DOMAIN_PROFILE',
     'PROGRESS','CHANGE_REPORT','CHECK_REPORT','REVIEW_REPORT','HANDOFF',
     'MODEL_CATALOG','MODEL_ADVICE','ACCEPTANCE_REPORT','UPGRADE_PLAN',
-    'SI_POLICY_EXCEPTION','SI_EVIDENCE_GRAPH','SI_ACTION_PROPOSAL',
+    'SI_POLICY_EXCEPTION','SI_EVIDENCE_GRAPH','SI_ACTION_PROPOSAL','LOCAL_ARTIFACTS',
 })
 
 class WorkflowRecords:
@@ -109,24 +109,28 @@ class WorkflowRecords:
                 'SELECT alias_norm FROM task_aliases WHERE repo_id=? AND task_id=?',
                 (self.store.repo_id,task_id))]
 
-    def create_preflight(self, title: str, request: str, brief: dict, alias_norm: str) -> dict:
+    def create_preflight(self, title: str, request: str, brief: dict, alias_norm: str, *, contract=None) -> dict:
         """One draft intake transaction: task, request, brief and alias or nothing."""
         title=require_key(title.strip(),'title',180)
         request=require_key(request.strip(),'request',20000)
         alias_norm=require_key(alias_norm,'alias_norm',180)
         if not isinstance(brief,dict) or not brief or len(canonical_json(brief).encode('utf-8'))>256*1024:
             raise StoreError('Invalid preflight brief')
+        if contract is not None and (not isinstance(contract,dict) or not contract or len(canonical_json(contract).encode('utf-8'))>256*1024):
+            raise StoreError('Invalid or oversized work contract')
         payload={'title':title,'request':request,'brief':brief,'alias_norm':alias_norm}
+        if contract is not None:payload['contract']=contract
         def run(cn):
             if cn.execute('SELECT 1 FROM task_aliases WHERE repo_id=? AND alias_norm=?',
                           (self.store.repo_id,alias_norm)).fetchone():
                 raise ConflictError('Alias belongs to another task; refresh task lookup')
             task_id='T-'+uuid.uuid4().hex[:20];ts=utc_now(self.store.clock)
-            document={'source_request':request,'purpose':'IMPLEMENTATION'}
+            document=contract if contract is not None else {'source_request':request,'purpose':'IMPLEMENTATION'}
+            lifecycle='WAITING_APPROVAL' if contract is not None else 'PREFLIGHT'
             cn.execute('''INSERT INTO tasks
                 (id,repo_id,title,kind,lifecycle,revision,current_contract_revision,created_at,updated_at)
                 VALUES(?,?,?,?,?,?,?,?,?)''',
-                (task_id,self.store.repo_id,title,'IMPLEMENTATION','PREFLIGHT',2,1,ts,ts))
+                (task_id,self.store.repo_id,title,'IMPLEMENTATION',lifecycle,2,1,ts,ts))
             cn.execute('''INSERT INTO contract_revisions
                 (task_id,revision,content_json,content_sha256,created_at) VALUES(?,?,?,?,?)''',
                 (task_id,1,canonical_json(document),digest(document),ts))
@@ -137,7 +141,7 @@ class WorkflowRecords:
                  canonical_json(brief),digest(brief),'OBSERVED',ts))
             cn.execute('INSERT INTO task_aliases(repo_id,alias_norm,task_id,created_at) VALUES(?,?,?,?)',
                        (self.store.repo_id,alias_norm,task_id,ts))
-            return {'task_id':task_id,'lifecycle':'PREFLIGHT','revision':2,'contract_revision':1,
+            return {'task_id':task_id,'lifecycle':lifecycle,'revision':2,'contract_revision':1,
                     'contract_hash':digest(document),'approved':False}
         return self.store.mutate('workflow.intake.create',payload,run)
 

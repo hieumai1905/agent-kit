@@ -1,6 +1,6 @@
 {
   "name": "Agent Workflow Kit",
-  "version": "1.0.2",
+  "version": "1.1.0-rc2",
   "date": "2026-11-02",
   "license": "MIT",
   "distribution": "USER_RUNTIME_AND_OPERATING_GUIDES_ONLY",
@@ -8,5 +8,6 @@
   "source_repository": "https://github.com/hieumai1905/agent-kit",
   "setup": "../BOOTSTRAP.md",
   "init_prompt": "../INIT_PROMPT.md",
-  "native_security_certified": false
+  "native_security_certified": false,
+  "release_status": "PRERELEASE_FOR_CONTROLLED_REAL_PROJECT_TRIAL"
 }

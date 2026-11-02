@@ -87,6 +87,49 @@ def demo():
         strict=run('strict_install',['install-guidance','--apply'])
         run('rollback_install',['rollback-guidance',strict['transaction_id'],'--apply'])
         assert not (repo/'AGENTS.md').exists() and not (repo/'CLAUDE.md').exists()
+        # Candidate everyday facade and local-only protection, still on this
+        # disposable fixture. No actual user approval or source patch is implied.
+        run('local_setup_preview',['setup','--mode','advisory'])
+        local=run('local_setup_apply',['setup','--mode','advisory','--apply'])
+        assert local['status']=='SETUP_LOCAL_READY'
+        small={'analysis_level':'QUICK','work_type':'MAINTENANCE',
+               'objective':'Verify the scratch fixture prints original',
+               'scope':{'functional':['app.py']},'preserve':['Scratch source stays byte-identical'],
+               'acceptance':['Scratch command prints original'],
+               'verification_strategy':['Run python on scratch app and hash source']}
+        datafile=base/'work.json';datafile.write_text(json.dumps(small))
+        started=run('work_start',['work','start','Scratch maintenance','--data',str(datafile)])
+        run('unapproved_guard_blocks',['work','checkpoint','Scratch maintenance','--check'],expect=2)
+        decision={'milestone':'CONTRACT_DECISION','expected_revision':started['checkpoint']['revision'],
+                  'contract_sha256':started['binding']['contract_sha256'],'phase':'IMPLEMENTING',
+                  'summary':'Synthetic smoke decision only; no real human attestation',
+                  'completed':['Inspected scratch fixture'],'remaining':['Run scratch command'],
+                  'blockers':[],'changed_paths':[],'source_paths':['app.py'],
+                  'next_action':'Check reported preconditions before test',
+                  'advisory_decision':{'kind':'DIRECT_HUMAN','decision':'APPROVED','source':'SMOKE_SCRIPTED_USER_FIXTURE_UNVERIFIED'}}
+        datafile.write_text(json.dumps(decision))
+        saved=run('work_checkpoint_readback',['work','checkpoint','Scratch maintenance','--data',str(datafile)])
+        assert saved['readback_matches'] and not saved['write_authorized']
+        assert saved['prepatch_check']['status']=='REPORTED_PRECONDITIONS_CURRENT'
+        run('work_guard_recheck',['work','checkpoint','Scratch maintenance','--check'])
+        executed=subprocess.run([sys.executable,'-B',str(fixture)],capture_output=True,text=True,check=False,timeout=8)
+        assert executed.returncode==0 and executed.stdout.strip()=='original'
+        finish={'expected_revision':saved['revision'],'contract_sha256':started['binding']['contract_sha256'],
+                'source_paths':['app.py'],'tested_source_hashes':{'app.py':expected},
+                'summary':'Scratch command executed successfully; no product source edits',
+                'completed':['Ran scratch command'],'remaining':[],'blockers':[],'changed_paths':[],
+                'checks':[{'kind':'SMOKE','command':'python3 -B app.py','executed':True,
+                           'exit_code':executed.returncode,'output_excerpt':executed.stdout,
+                           'status':'PASS','covers':['A1','P1']}],
+                'next_action':'User reviews unverified report'}
+        datafile.write_text(json.dumps(finish))
+        finished=run('work_finish',['work','finish','Scratch maintenance','--data',str(datafile)])
+        assert finished['verification']['reported_verdict']=='VERIFIED_REPORTED' and not finished['auto_complete']
+        resumed=run('compact_resume',['resume','Scratch maintenance','--compact'])
+        assert resumed['resume_brief']['reported_verification']['trust']=='UNVERIFIED_REPORT'
+        run('paged_history',['work','history','Scratch maintenance','--limit','2'])
+        run('artifact_index_check',['artifacts','check'])
+        run('remove_candidate_guidance',['remove-guidance','--apply'])
         return {'pass':all(s['pass'] for s in steps) and sha256(fixture.read_bytes()).hexdigest()==expected,
                 'steps':steps,'step_count':len(steps),'product_fixture_unchanged':sha256(fixture.read_bytes()).hexdigest()==expected,
                 'final_repo_files':sorted(p.name for p in repo.iterdir() if p.name!='.git'),

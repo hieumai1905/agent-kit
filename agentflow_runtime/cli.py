@@ -1,4 +1,4 @@
-"""Agent Workflow Kit v1.0.2 local process CLI (V3 engine).
+"""Agent Workflow Kit v1.1.0-rc2 local process CLI (V3 engine).
 
 Safe by default: read-only exploration and external-state drafts; no product-code
 mutation, native approvals, execution grants, model calls or CI/CD actions.
@@ -36,18 +36,35 @@ from agentflow_si.operations import mutation_preflight, git_scope_preview, class
 from agentflow_si.workflow import (evidence_impact, evidence_graph_draft, intent_preview,
     profile_exception_proposal, verification_plan, verification_resource_conflicts)
 
-VERSION='1.0.2'
+VERSION='1.1.0-rc2'
 
 
 def make_parser():
-    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.0.2 - local process tools, not OS enforcement')
+    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.1.0-rc2 - work start/checkpoint/finish; not OS enforcement')
     p.add_argument('--repo',required=True,help='Existing project folder')
     p.add_argument('--state-home',help='External local state root')
     sub=p.add_subparsers(dest='action',required=True)
     sub.add_parser('version'); sub.add_parser('doctor');sub.add_parser('capabilities')
     sub.add_parser('scan');sub.add_parser('tasks');sub.add_parser('profile');sub.add_parser('setup-preview')
     sub.add_parser('repo-status')
-    resume=sub.add_parser('resume');resume.add_argument('query',nargs='?',default='')
+    resume=sub.add_parser('resume');resume.add_argument('query',nargs='?',default='');resume.add_argument('--compact',action='store_true')
+    work=sub.add_parser('work',help='Everyday start/checkpoint/finish; legacy commands remain available')
+    worksub=work.add_subparsers(dest='work_action',required=True)
+    for name in ('start','checkpoint','finish','history'):
+        examples={
+          'start':'--data - accepts a contract: analysis_level QUICK, work_type BUG/FEATURE/MAINTENANCE, objective, scope.functional, preserve, acceptance, verification_strategy. Returns decision_input_example; do not read implementation source for payloads.',
+          'checkpoint':'Decision JSON: {"contract_sha256":"FROM_START_OR_RESUME","expected_revision":1,"decision":{"choice":"APPROVED","source":"actual current-chat USER message"},"source_paths":["app.py"]}. Replace revision with the observed checkpoint revision, never guess. Saved decision automatically persists, reads back and rechecks; inspect decision_readback/prepatch_check, stop on BLOCKED/nonzero. Successful recheck returns only finish_input_example. No immediate duplicate readback/check is needed; --check revalidates after a gap/change. For new files use new_paths. Intentional next batch JSON: milestone HANDOFF, phase IMPLEMENTING, contract_sha256, observed expected_revision, source_paths, prepare_next_batch true, actual summary/completed/remaining/blockers/changed_paths/next_action. Reconcile scoped changes before refreshing observations; approval is not refreshed.',
+          'finish':'JSON: contract_sha256, expected_revision, source_paths, tested_source_hashes captured at test time, summary/completed/remaining/blockers/changed_paths/next_action, checks. Each check: kind (REPRODUCTION for bug), command, executed, exit_code, output_excerpt, status, covers [A1..,P1..]. Runs artifact check and saves verification plus handoff; no extra handoff/artifacts call required after success.',
+          'history':'Read-only paged checkpoint summaries. Use next_before as --before to continue.'}
+        cmd=worksub.add_parser(name,description=examples[name]);cmd.add_argument('topic');cmd.add_argument('--data',help='JSON file OUTSIDE product tree, or - for stdin; see description above')
+        if name=='start':cmd.add_argument('--kind',choices=['change','question','investigate'],default='change')
+        if name=='checkpoint':cmd.add_argument('--check',action='store_true',help='Read-only recheck of the saved decision and sources before patch')
+        if name=='history':cmd.add_argument('--limit',type=int,default=5);cmd.add_argument('--before',type=int)
+    setup=sub.add_parser('setup',help='Guidance plus external inventory and local Git exclude')
+    setup.add_argument('--mode',choices=['strict','advisory'],default='strict');setup.add_argument('--apply',action='store_true');setup.add_argument('--upgrade',action='store_true');setup.add_argument('--data')
+    setup.add_argument('--delegated-advisory',action='store_true',help='Preserve explicitly selected legacy H/D protocol; never a grant')
+    artifacts=sub.add_parser('artifacts',help='External kit-only inventory / INDEX checker')
+    artifacts.add_argument('artifact_action',choices=['check','register','inventory','classify-product']);artifacts.add_argument('--data',help='External JSON or stdin. classify-product: items with relative path, exact sha256, source and reason; reports do not override known kit paths/markers/state.')
     final=sub.add_parser('final-review');final.add_argument('task_id')
     status=sub.add_parser('task-status');status.add_argument('task_id')
     template=sub.add_parser('contract-template');template.add_argument('--level',choices=['QUICK','STANDARD','DEEP'],default='STANDARD')
@@ -111,6 +128,20 @@ def _read_json(path:str):
     return json.loads(p.read_text(encoding='utf-8'))
 
 
+def _work_data(path,repo):
+    if not path:return {}
+    if path=='-':
+        raw=sys.stdin.read(400001)
+        if len(raw.encode('utf-8'))>400000:raise StoreError('JSON input too large')
+        value=json.loads(raw)
+    else:
+        p=Path(path).expanduser().resolve()
+        if p.is_relative_to(Path(repo).resolve()):raise StoreError('Kit JSON must stay outside product tree; use --data -')
+        value=_read_json(str(p))
+    if not isinstance(value,dict):raise StoreError('Expected a JSON object')
+    return value
+
+
 def _strip_resume(text:str):
     return re.sub(r'^(tiếp tục|tiep tuc|resume|làm tiếp|lam tiep|trở lại task|tro lai task|mở lại|mo lai)\s+',
                   '',text,flags=re.I).strip()
@@ -118,6 +149,24 @@ def _strip_resume(text:str):
 
 def process(args):
     repo=args.repo; home=args.state_home
+    if args.action=='setup':
+        from .artifacts import setup
+        return setup(repo,home,args.mode,args.apply,args.upgrade,_work_data(args.data,repo).get('guidance_classification'),delegated=args.delegated_advisory)
+    if args.action=='artifacts':
+        from .artifacts import Artifacts
+        manager=Artifacts(repo,home);data=_work_data(args.data,repo)
+        if args.artifact_action=='register':return manager.register(data.get('items'))
+        if args.artifact_action=='classify-product':return manager.classify_product(data.get('items'))
+        if args.artifact_action=='inventory':return {'inventory':manager.inventory(),'read_only':True}
+        return manager.check(data.get('product_paths'))
+    if args.action=='work':
+        from .work import start,checkpoint,finish,history,recheck
+        if args.work_action=='history':return history(repo,home,args.topic,args.limit,args.before)
+        if args.work_action=='checkpoint' and args.check:return recheck(repo,home,args.topic)
+        data=_work_data(args.data,repo)
+        if args.work_action=='start':return start(repo,home,args.topic,data,args.kind)
+        if args.work_action=='checkpoint':return checkpoint(repo,home,args.topic,data)
+        return finish(repo,home,args.topic,data)
     # Pure templates/diagnostics: no implicit state initialization or approval.
     if args.action=='delegation-template':return record_template()
     if args.action=='delegation-contract':return contract_binding(_read_json(args.json_file))
@@ -145,17 +194,26 @@ def process(args):
     if args.action=='si-test-footprints':return verification_resource_conflicts(_read_json(args.json_file))
     if args.action=='si-release-doctor':
         return release_readiness(repo,home,observations=_read_json(args.observations_json) if args.observations_json else None)
-    if args.action=='version':return {'version':VERSION,'working_revision':'V1.0.2-USER-DISTRIBUTION-2026-11-02',
+    if args.action=='version':return {'version':VERSION,'working_revision':'V1.1.0-RC1-LOCAL-CANDIDATE',
                                      'release_class':'PRACTICAL_ADVISORY_RELEASE_NOT_SECURITY_CERTIFIED'}
     if args.action=='repo-status':return git_snapshot(repo)
-    if args.action=='resume':return resume_view(repo,home,args.query)
+    if args.action=='resume':
+        out=resume_view(repo,home,args.query)
+        if args.compact:
+            from .work import compact_resume
+            if out.get('action')=='RESUME_READ_ONLY':
+                from .artifacts import Artifacts
+                from agentflow_core.db import StateStore
+                return compact_resume(out,Artifacts(repo,home).check(),str(StateStore(repo,home).state_dir/'artifacts'))
+            return out
+        return out
     if args.action=='interact' and route_intent(args.text)['intent']=='RESUME':
         resumed=resume_view(repo,home,args.text)
         return {'intent':'RESUME','action':'MATCH_EXISTING_TASK','result':resumed['match'],
                 'resume':resumed,'requires_disambiguation':resumed['action']=='CHOOSE_TASK',
                 'new_task_created':False,'write_authorized':False}
     if args.action=='final-review':return final_review_view(repo,home,args.task_id)
-    if args.action=='task-status':return task_status(WorkflowRecords(repo,home),args.task_id)
+    if args.action=='task-status':return task_status(WorkflowRecords(repo,home,initialize=False),args.task_id)
     if args.action=='check-write':
         return check_decision(WorkflowRecords(repo,home,initialize=False),args.task_id,_read_json(args.json_file))
     if args.action=='capabilities':return capability_matrix()
@@ -273,6 +331,8 @@ def main(argv=None):
     try:
         response=process(args)
         print(json.dumps(response,indent=2,ensure_ascii=False,sort_keys=False))
+        if args.action in ('setup','artifacts') and response.get('status')=='BLOCKED':return 2
+        if args.action=='work' and response.get('status')=='BLOCKED':return 2
         return 0
     except sqlite3.DatabaseError as exc:
         response=state_database_error(exc)

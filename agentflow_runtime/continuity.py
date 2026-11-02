@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from contextlib import closing
+import json
 from pathlib import PurePosixPath
 from agentflow_core import ConflictError, StoreError
-from .status import PHASES, observe_source_hashes
+from .status import PHASES, observe_source_hashes, _binding, _aggregate
 
 SCHEMA = 'agentflow.checkpoint.v1'
 MILESTONES = ('CONTRACT_DECISION', 'SCOPE_CHANGE', 'IMPLEMENTATION_VERIFICATION', 'HANDOFF')
@@ -56,7 +58,7 @@ def save_checkpoint(records, task_id, content, *, expected_revision=0):
         raise StoreError('Expected agentflow.checkpoint.v1 object, not a template wrapper')
     if content.get('milestone') not in MILESTONES: raise StoreError('Unknown checkpoint milestone')
     if not isinstance(content.get('phase'), str) or content['phase'] not in PHASES:
-        raise StoreError('Unsupported reported phase')
+        raise StoreError('Unsupported reported phase. Allowed: '+', '.join(sorted(PHASES))+'; verification in progress uses VERIFYING or TESTING. Reread/reconcile before saving.')
     for name, limit in (('summary', 4000), ('next_action', 2000)):
         value = content.get(name)
         if not isinstance(value, str) or not value.strip() or len(value) > limit:
@@ -95,7 +97,46 @@ def save_checkpoint(records, task_id, content, *, expected_revision=0):
             'note': 'Checkpoint is an unverified report; no approval/lifecycle/completion transition.'}
 
 
-def resume_brief(progress_record, status):
+def last_reported_verification(records, task_id, contract, progress_record):
+    """Read the last verification fact, independent of later progress reports.
+
+    Finish already saves report + binding atomically in one immutable PROGRESS
+    row. Reuse that history: no new DB schema, duplicate save or PASS carry-over.
+    The current progress revision bounds this snapshot during concurrent reads.
+    """
+    if not progress_record:
+        return None
+    with closing(records.store.connect(read_only=True)) as cn:
+        rows = cn.execute('''SELECT id, revision, content_json FROM workflow_documents
+            WHERE repo_id=? AND scope_key=? AND kind='PROGRESS' AND doc_key='primary'
+            AND revision<=? AND instr(content_json, '"verification_report"')>0
+            ORDER BY revision DESC''',
+            (records.store.repo_id, task_id, progress_record['revision']))
+        for row in rows:
+            content = json.loads(row['content_json'])
+            report = content.get('verification_report')
+            if not isinstance(report, dict):
+                continue
+            # rc2 reports bind the actual tested snapshot inside the report.
+            # rc1 history retains its original immutable checkpoint binding.
+            own_binding=any(key in report for key in
+                            ('contract_sha256','contract_revision','tested_source_hashes'))
+            bound=report if own_binding else content
+            hashes=report.get('tested_source_hashes') if own_binding else content.get('source_hashes')
+            source = observe_source_hashes(records.store.repo, hashes)
+            binding = _binding(bound, contract)
+            return {'record_id': row['id'], 'progress_revision': row['revision'],
+                    'contract_sha256': bound.get('contract_sha256'),
+                    'contract_revision': bound.get('contract_revision'),
+                    'binding_origin':'TESTED_REPORT' if own_binding else 'LEGACY_IMMUTABLE_PROGRESS',
+                    'contract_freshness': binding, 'source_freshness': source,
+                    'freshness': _aggregate([binding, source['status']]),
+                    'assessment': report, 'trust': 'UNVERIFIED_REPORT',
+                    'trusted': False, 'write_authorized': False}
+    return None
+
+
+def resume_brief(progress_record, status, verification=None):
     """Summarize stored facts; do not synthesize a completion or a new approval."""
     content = progress_record['content'] if progress_record else {}
     structured = content.get('checkpoint_schema') == SCHEMA
@@ -105,6 +146,20 @@ def resume_brief(progress_record, status):
     def text(name):
         value = content.get(name)
         return value[:4000] if isinstance(value, str) else None
+    report = verification['assessment'] if verification else content.get('verification_report')
+    summary = None
+    if isinstance(report, dict):
+        summary = {
+            'verdict': str(report.get('reported_verdict', ''))[:80],
+            'coverage': str(report.get('coverage', ''))[:30],
+            'missing_criteria': [str(x)[:100] for x in report.get('missing_criteria', [])[:5]]
+                if isinstance(report.get('missing_criteria'), list) else [],
+            'trust': 'UNVERIFIED_REPORT',
+            'freshness': verification['freshness'] if verification else status['reported_work']['freshness']}
+        if verification:
+            summary.update({key: verification[key] for key in
+                ('record_id', 'progress_revision', 'contract_sha256', 'contract_revision', 'contract_freshness')})
+            summary['source_freshness'] = verification['source_freshness']['status']
     return {
         'checkpoint_format': 'MISSING' if not progress_record else 'STRUCTURED' if structured else 'LEGACY',
         'record_id': progress_record['record_id'] if progress_record else None,
@@ -115,6 +170,7 @@ def resume_brief(progress_record, status):
         'reported_next_action': text('next_action') or text('next'),
         'progress_freshness': status['reported_work']['freshness'],
         'status_recommendation': status['next_action'],
+        'reported_verification': summary,
         'required_before_effects': ['RECONCILE_CURRENT_CONTRACT_AND_GIT',
                                     'REVALIDATE_CURRENT_PROVIDER_DECISIONS',
                                     'DO_NOT_TREAT_SAVED_REPORT_AS_AUTHORITY'],

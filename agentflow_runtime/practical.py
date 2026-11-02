@@ -93,13 +93,18 @@ def resume_view(repo,state_home,query):
 
 def final_review_view(repo,state_home,task_id):
     """A compact, honest acceptance view: no synthetic PASS or fake DoD."""
-    evidence=EvidenceReviewer(repo,state_home).evaluation(task_id)
-    packet=HandoffBuilder(repo,state_home).packet(task_id)
+    evidence=EvidenceReviewer(repo,state_home,initialize=False).evaluation(task_id)
+    builder=HandoffBuilder(repo,state_home,initialize=False)
+    packet=builder.packet(task_id)
+    verification=packet.get('last_reported_verification')
+    reported_verification=verification['assessment'] if verification else None
     criteria=evidence.get('requirements',[])
     return {'task_id':task_id,'objective':packet['contract']['objective'],
             'status_view':evidence['status_view'],
             'acceptance_criteria':[{'criterion':x,'verification':'UNVERIFIED_IN_THIS_KIT'} for x in criteria],
             'reported_evidence':evidence['reported_evidence'],
+            'reported_criterion_assessment':reported_verification,
+            'reported_verification_freshness':verification['freshness'] if verification else None,
             'review_status':evidence['review_status'],
             'definition_of_done':evidence['definition_of_done'],
             'git':git_snapshot(repo),'known_limits':['NO_TRUSTED_NATIVE_APPROVAL',
