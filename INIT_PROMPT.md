@@ -3,9 +3,9 @@
 Mở đúng dự án trong agent coding, rồi gửi nguyên khối dưới đây. Không chạy các lệnh setup trong repo kit để thay cho dự án đích.
 
 ```text
-Thiết lập Agent Workflow Kit v1.0.1 cho dự án tôi đang mở.
+Thiết lập Agent Workflow Kit v1.0.2 cho dự án tôi đang mở.
 
-Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.0.1.
+Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.0.2.
 Tôi chọn ADVISORY, duyệt contract trực tiếp trong chat, một agent ghi tuần tự.
 Tôi cho phép clone kit ra ngoài dự án, khởi tạo state/backup bên ngoài và làm
 mới managed workflow trong AGENTS.md, CLAUDE.md theo BOOTSTRAP.md của tag này.

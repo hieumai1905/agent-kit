@@ -20,7 +20,7 @@ def main():
             actual=hashlib.sha256(p.read_bytes()).hexdigest()
             if actual!=expected:failures.append(f'Hash mismatch: {relative}')
         expected=set(data['sha256'])
-        permitted_unlisted={'release/MANIFEST_SHA256.json','release/ONE_SHOT_ACCEPTANCE.json','release/PRACTICAL_SMOKE.json'}
+        permitted_unlisted={'release/MANIFEST_SHA256.json','release/PRACTICAL_SMOKE.json'}
         extras=[]
         for fp in ROOT.rglob('*'):
             if (not fp.is_file() or '.git' in fp.relative_to(ROOT).parts

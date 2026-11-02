@@ -1,39 +1,91 @@
-# Agent Workflow Kit v1.0.1
+# Agent Workflow Kit
 
-Bộ kit local giúp làm việc với coding agent theo quy trình: **yêu cầu → contract → duyệt → checkpoint → patch → test/review → handoff**. Đã chốt phạm vi ADVISORY, một executor ghi tuần tự; tiếp tục đóng băng phát triển mở rộng.
+Quy trình làm việc với coding agent ngay trong dự án: **yêu cầu → contract → duyệt → checkpoint → triển khai → kiểm thử → bàn giao**.
+
+[MIT License](LICENSE) · Python 3.11+ · Git · Bản hiện hành: **v1.0.2**
 
 ## Bắt đầu bằng một prompt
 
-Mở **dự án cần làm việc** trong coding agent, rồi gửi [toàn bộ prompt trong INIT_PROMPT.md](INIT_PROMPT.md). Agent sẽ clone tag `v1.0.1` ra ngoài project, kiểm kit, làm mới managed workflow trong **cả AGENTS.md và CLAUDE.md**, kiểm state/path/override và xác nhận SETUP_READY. Người dùng đã chọn ADVISORY và cho phép setup trong prompt; không phải gõ lệnh hoặc duyệt lại các bước cài thông thường.
+Mở **dự án cần làm việc** trong coding agent, sau đó gửi nguyên [prompt khởi tạo](INIT_PROMPT.md). Agent tự clone phiên bản đã pin ra ngoài dự án, chạy setup và kiểm tra kết quả theo [BOOTSTRAP.md](BOOTSTRAP.md). Bạn không cần nhập Task ID hoặc tự chạy lệnh cài.
 
-**Bắt buộc làm mới/xác minh các file chỉ dẫn**, kể cả khi đã có sẵn. Chỉ clone kit hoặc thấy file tồn tại chưa được tính là setup xong. Nội dung riêng của dự án được giữ nguyên; custom block/override xung đột phải được báo trước khi có thể tiếp tục. [BOOTSTRAP.md](BOOTSTRAP.md) mô tả đầy đủ điều kiện nghiệm thu.
+Setup bắt buộc:
 
-Sau setup chỉ cần nói: “Sửa lỗi …”, “Thêm …”, “Tiếp tục việc …”. Agent tự tìm task/khảo sát và trình contract; bạn duyệt contract trước khi code. Cài kit không phê duyệt task sản phẩm và không tự cho phép commit/push/deploy.
+1. Kiểm tra project, Git, runtime và các chỉ dẫn/override đang có hiệu lực.
+2. Clone tag `v1.0.2` vào vị trí bền vững bên ngoài project; kiểm manifest và version.
+3. Dry-run rồi **làm mới cả AGENTS.md và CLAUDE.md** bằng installer của kit, giữ nguyên các quy tắc riêng ngoài managed block.
+4. Đọc lại hai file, xác nhận helper path/mode/state/override và workflow đang áp dụng trước khi báo **SETUP_READY**.
 
-## Nội dung repo
+Không chạy `/init` để sinh workflow riêng thay kit. Nếu block bị tùy biến hoặc override xung đột, setup phải báo **BLOCKED** cùng nguyên nhân; không ghi đè hoặc báo thành công giả. Prompt đã cho phép setup đúng phạm vi nên không cần duyệt lại từng lệnh cài thông thường.
 
-- [INIT_PROMPT.md](INIT_PROMPT.md): một prompt copy/paste cho người dùng.
-- [BOOTSTRAP.md](BOOTSTRAP.md): quy trình setup bắt buộc cho agent.
-- [README_START_HERE.md](README_START_HERE.md), [hướng dẫn dùng](guides/00_BAT_DAU_V1_0.md): tài liệu vận hành; các ví dụ Concat là bối cảnh pilot trên máy tác giả, không là đường dẫn cài cho người khác.
-- `agentflow_core`, `agentflow_runtime`, `agentflow_security`, `agentflow_si`, `tools`, `tests`: toàn bộ source/helper và tests của kit.
-- `release`, `docs`, `native`, `source-preview`: nghiệm thu và tài liệu theo mốc; legacy/preview không phải installer chính, không tự kích hoạt backlog hoặc hooks cũ.
+## Yêu cầu
 
-## Kiểm thử và đóng gói
+- Python **3.11+** và Git có sẵn.
+- Agent có thể đọc file, chạy terminal và clone GitHub theo quyền hiện có.
+- Một agent ghi tuần tự. Codex local là môi trường đã có bằng chứng sử dụng; chưa khẳng định mọi provider/model đều đã được nghiệm thu.
+- Clone, state và backup đặt ngoài working tree của dự án. Setup không tự cài package, đổi auth/model hoặc cấu hình sandbox.
 
-Python 3.11+ và Git. Không cần package mới để cài guidance. Một số test/lab dùng cryptography hoặc Node nếu máy đã có; skip phải được báo riêng.
+Installer mặc định STRICT. Prompt init chủ động chọn **ADVISORY, duyệt trực tiếp trong chat**. Cài đặt không phê duyệt task code hoặc tự cấp ủy quyền H/D.
+
+## Dùng hằng ngày
+
+Sau SETUP_READY, gửi yêu cầu bình thường:
+
+> Sửa lỗi [mô tả], kết quả mong muốn là [kết quả]. Giữ nguyên [ràng buộc]. Không commit/push/deploy.
+
+Agent khảo sát phần liên quan và trình contract ngắn. Khi đồng ý, trả lời **Duyệt contract này**. Agent lưu checkpoint quyết định trước patch, kiểm thử theo phạm vi và báo kết quả thật.
+
+Khi tiếp tục ở chat khác:
+
+> Tiếp tục việc [tên việc]. Đọc checkpoint và đối chiếu Git/contract/quyết định hiện tại trước khi làm.
+
+Nếu có nhiều task gần giống nhau, agent cần hỏi chọn đúng việc. State/checkpoint là dữ liệu bàn giao chưa xác thực; không tự khôi phục quyền ghi hay delegation đã kết thúc.
+
+## Kiểm tra cài đặt
+
+Các lệnh dưới đây dành cho agent, chạy từ kit; `/ABS/PROJECT` là project đã xác định:
 
 ```sh
 python3 -B tools/verify_release.py
-python3 -B tools/release_acceptance.py
-python3 -B tools/build_practical_release.py
+python3 -B tools/agentflow.py --repo /ABS/PROJECT version
+python3 -B tools/agentflow.py --repo /ABS/PROJECT doctor
+python3 -B tools/practical_smoke.py
 ```
 
-Builder xuất ZIP và checksum ra **thư mục cha của checkout**. Không đặt checkout ngay cạnh một artifact cùng tên mà bạn muốn giữ nguyên. Metadata `.git` không được hash/đóng gói; các file payload khác vẫn được kiểm nghiêm ngặt. Hai báo cáo local có thể chạy lại không nằm trong manifest; checksum ZIP bao phủ toàn bộ bản giao. Manifest/checksum kiểm toàn vẹn, không chứng thực nhà phát hành.
+`practical_smoke.py` kiểm luồng task/contract/checkpoint/handoff và cài/gỡ/rollback trên repo tạm; không chạy model hoặc sửa project thật. Nó sinh báo cáo local được Git ignore. Exit 0 của một diagnostic không tự là approval; agent phải đọc nội dung JSON.
 
-## Phạm vi đã kiểm
+## Tài liệu
 
-v1.0.1 sửa F1–F5: lookup task cũ và intake transaction, kiểu JSON/placeholder, phản hồi state lỗi, nested Cargo/CI discovery. Xem [nghiệm thu v1.0.1](release/V1_0_1_ACCEPTANCE.json); [nghiệm thu phân phối Git/setup](release/GITHUB_DISTRIBUTION.json) ghi kiểm thử bổ sung. Các kết quả A4 là pilot có giới hạn trên Concat, không phải mọi task/provider.
+| Tài liệu | Nội dung |
+|---|---|
+| [INIT_PROMPT.md](INIT_PROMPT.md) | Một prompt copy/paste để khởi tạo |
+| [BOOTSTRAP.md](BOOTSTRAP.md) | Các bước setup và điều kiện SETUP_READY |
+| [Sử dụng](docs/USAGE.md) | Giao việc, resume, cập nhật, gỡ và rollback |
+| [Quy trình agent](docs/AGENT_WORKFLOW.md) | Contract, giới hạn scope, thực thi, test/review, status |
+| [Continuity](docs/CONTINUITY.md) | Checkpoint theo mốc và tiếp quản công việc |
+| [Ủy quyền tùy chọn](docs/DELEGATED_ADVISORY.md) | Protocol H/D khi người dùng chọn riêng |
+| [Guard trước patch](docs/CHECKED_PATCH_FLOW.md) | Luồng checkedPatchFlow của delegated ADVISORY |
 
-ADVISORY phụ thuộc agent tuân thủ và permissions provider; chưa có mandatory OS write boundary/trusted approval adapter hoặc multiwriter safety. Không tự đổi sandbox/auth/model, không dùng workflow lịch sử để mở rộng phạm vi. Claude có file hướng dẫn tương thích nhưng chưa được chứng nhận native như Codex local.
+## Nội dung bản dùng
 
-Các bản ZIP có checksum được lưu ở trang Releases của repo; tag `v1.0.1` là phiên bản dùng cho prompt init. Không di chuyển/xóa kit đang được project tham chiếu và không reset/pull đè source local đã tùy biến.
+```text
+agentflow_core/       State, task, contract và backup
+agentflow_runtime/    Workflow, installer, checkpoint và handoff
+agentflow_security/   Dependency kiểm tra quyền/chẩn đoán của runtime
+agentflow_si/         Helper chẩn đoán và preflight của CLI
+docs/                Tài liệu vận hành hiện hành
+tools/               CLI, kiểm manifest, smoke và checked patch flow
+release/             Metadata phiên bản và manifest
+LICENSE
+```
+
+Repo hiện hành chỉ giữ phần phục vụ cài đặt/vận hành và dependency cần thiết. Không phân phối preview installer, security mutation labs, roadmap, báo cáo/PDF lịch sử, dữ liệu pilot hay bộ test phát triển. Các phiên bản cũ vẫn thuộc lịch sử Git; dùng tag hiện hành và shallow clone trong prompt init để lấy bản gọn.
+
+ZIP và checksum của bản dùng có tại [Releases](https://github.com/hieumai1905/agent-kit/releases). Mã kiểm thử phát triển và hồ sơ nghiệm thu được lưu riêng khỏi gói người dùng.
+
+## Giới hạn
+
+ADVISORY là quy ước làm việc dựa trên sự tuân thủ của agent và permissions provider. Kit chưa có trusted approval adapter, khóa ghi OS, thu hồi nguyên tử hoặc bảo đảm nhiều writer. Helper/report không tự cấp quyền, chứng thực PASS hoặc thay quyết định người dùng. Không tự stage/commit/push/deploy hay mở rộng yêu cầu.
+
+## License
+
+Mã nguồn và tài liệu trong bản hiện hành được phát hành theo [MIT License](LICENSE). Copyright © 2026 hieumai1905.

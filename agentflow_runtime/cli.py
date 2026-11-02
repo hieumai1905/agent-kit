@@ -1,4 +1,4 @@
-"""Agent Workflow Kit v1.0.1 local process CLI (V3 engine).
+"""Agent Workflow Kit v1.0.2 local process CLI (V3 engine).
 
 Safe by default: read-only exploration and external-state drafts; no product-code
 mutation, native approvals, execution grants, model calls or CI/CD actions.
@@ -36,11 +36,11 @@ from agentflow_si.operations import mutation_preflight, git_scope_preview, class
 from agentflow_si.workflow import (evidence_impact, evidence_graph_draft, intent_preview,
     profile_exception_proposal, verification_plan, verification_resource_conflicts)
 
-VERSION='1.0.1'
+VERSION='1.0.2'
 
 
 def make_parser():
-    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.0.1 - local process tools, not OS enforcement')
+    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.0.2 - local process tools, not OS enforcement')
     p.add_argument('--repo',required=True,help='Existing project folder')
     p.add_argument('--state-home',help='External local state root')
     sub=p.add_subparsers(dest='action',required=True)
@@ -145,7 +145,7 @@ def process(args):
     if args.action=='si-test-footprints':return verification_resource_conflicts(_read_json(args.json_file))
     if args.action=='si-release-doctor':
         return release_readiness(repo,home,observations=_read_json(args.observations_json) if args.observations_json else None)
-    if args.action=='version':return {'version':VERSION,'working_revision':'V1.0.1-BUGFIX-2026-11-02',
+    if args.action=='version':return {'version':VERSION,'working_revision':'V1.0.2-USER-DISTRIBUTION-2026-11-02',
                                      'release_class':'PRACTICAL_ADVISORY_RELEASE_NOT_SECURITY_CERTIFIED'}
     if args.action=='repo-status':return git_snapshot(repo)
     if args.action=='resume':return resume_view(repo,home,args.query)

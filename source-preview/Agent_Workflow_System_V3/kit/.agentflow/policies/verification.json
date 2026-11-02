@@ -1,9 +1,0 @@
-{
-  "version": 1,
-  "checks": [],
-  "examples_only": [
-    {"name": "typecheck", "argv": ["npm", "run", "typecheck"], "timeout": 300},
-    {"name": "unit-tests", "argv": ["npm", "test"], "timeout": 300}
-  ],
-  "notes": "Bắt buộc khảo sát đúng dự án để chọn lệnh test. Chưa cấu hình => NOT RUN, không PASS giả. Không tự sửa trước khi các lệnh được duyệt theo policy."
-}
