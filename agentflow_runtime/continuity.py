@@ -28,6 +28,9 @@ def checkpoint_template(records, task_id, milestone='HANDOFF'):
     if previous:
         for key in ('advisory_decision', 'human_contract_decision_observed', 'advisory_delegation'):
             if key in previous['content']: carried[key] = deepcopy(previous['content'][key])
+        if (previous['content'].get('contract_sha256')==contract['sha256']
+                and previous['content'].get('contract_revision')==contract['revision'] and previous['content'].get('implementation_plan')):
+            carried['implementation_plan']=deepcopy(previous['content']['implementation_plan'])
     return {'checkpoint': {
                 'checkpoint_schema': SCHEMA, 'milestone': milestone,
                 'contract_sha256': contract['sha256'], 'contract_revision': contract['revision'],
@@ -78,6 +81,8 @@ def save_checkpoint(records, task_id, content, *, expected_revision=0):
     if (type(content.get('contract_revision')) is not int or content['contract_revision'] != contract['revision']
             or content.get('contract_sha256') != contract['sha256']):
         raise ConflictError('Contract changed or checkpoint is unbound; revalidate before saving')
+    from .implementation import transition
+    execution=transition(contract,records.store.repo,current['content'] if current else {},content)
     if content['milestone'] == 'CONTRACT_DECISION' and not any(
         content.get(key) for key in ('advisory_decision', 'human_contract_decision_observed', 'advisory_delegation')):
         raise StoreError('Contract-decision milestone requires reported decision provenance')
@@ -87,7 +92,7 @@ def save_checkpoint(records, task_id, content, *, expected_revision=0):
         raise StoreError('Implementation/verification checkpoint requires reported source_hashes')
     if manifest is not None:
         from .sources import observe
-        state=observe(contract['content'],records.core.store.repo,manifest)
+        state=observe(execution,records.core.store.repo,manifest)
         if state['status']!='CURRENT':raise ConflictError('Per-repo source coverage missing/stale; reconcile: '+str(state.get('reason',state['status'])))
     if hashes is not None:
         observed = observe_source_hashes(records.core.store.repo, hashes)
@@ -131,7 +136,9 @@ def last_reported_verification(records, task_id, contract, progress_record):
             from .sources import observe,legacy_coverage
             tested_manifest=report.get('tested_sources')
             if tested_manifest is not None:
-                source=observe(contract['content'],records.store.repo,tested_manifest)
+                from .implementation import effective
+                try:source=observe(effective(contract,records.store.repo,progress_record['content']),records.store.repo,tested_manifest)
+                except (StoreError,ValueError,OSError,RuntimeError) as exc:source={'status':'UNKNOWN','coverage':'INCOMPLETE','reason':str(exc)}
                 coverage={'status':source['coverage']}
             else:
                 source=observe_source_hashes(records.store.repo,hashes)
@@ -170,6 +177,7 @@ def resume_brief(progress_record, status, verification=None):
                 if isinstance(report.get('missing_criteria'), list) else [],
             'trust': 'UNVERIFIED_REPORT',
             'freshness': verification['freshness'] if verification else status['reported_work']['freshness']}
+        if report.get('user_workflow'):summary['user_workflow']=report['user_workflow']
         if verification:
             summary.update({key: verification[key] for key in
                 ('record_id', 'progress_revision', 'contract_sha256', 'contract_revision', 'contract_freshness')})

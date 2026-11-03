@@ -2,10 +2,10 @@
 
 Mở agent tại thư mục dự án rồi gửi nguyên khối dưới đây. Agent tự clone và setup; sau đó bạn giao việc bình thường. **Thư mục làm việc hiện tại lúc nhận prompt là đích mặc định**, được chốt trước khi clone hoặc đổi thư mục.
 
-Bản hiện hành: **v1.1.0-rc3**, bản thử để kiểm thử thực tế. Runtime pin theo tag; các tag cũ giữ nguyên. Prompt hiện hành được duy trì trên `main`.
+Bản hiện hành: **v1.1.0-rc4**, bản thử để kiểm thử thực tế. Runtime pin theo tag; prompt hiện hành trên `main` sẽ pin thêm SHA cụ thể. Giữ nguyên các tag, clone và state cũ.
 
 ```text
-Thiết lập và áp dụng Agent Workflow Kit v1.1.0-rc3 cho thư mục làm việc
+Thiết lập và áp dụng Agent Workflow Kit v1.1.0-rc4 cho thư mục làm việc
 hiện tại của agent, để sau đó tôi giao việc bình thường.
 
 Trước khi clone hoặc đổi thư mục, chạy pwd -P và ghi đường dẫn tuyệt đối
@@ -14,14 +14,13 @@ Không suy đích từ tên chat, repo từng làm hoặc thư mục chứa kit.
 canonical Git root; nếu root ở cha, có nhiều repo hoặc chưa có Git, làm rõ
 đích trước khi apply. Không tự nâng root, chọn repo con, git init hoặc cài hàng loạt.
 
-Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.1.0-rc3.
-Commit bắt buộc phải khớp: a63c27b7d76ce9f8fad39addbcf77701f09c8aee.
-Đối chiếu HEAD và commit của tag; ghi lại SHA thực đã dùng.
-Clone bằng git clone --branch v1.1.0-rc3 --depth 1 vào
-~/.local/share/agent-workflow-kit/v1.1.0-rc3 hoặc vị trí bền vững ngoài đích.
-Nếu đã có clone, kiểm origin, tag/commit và thay đổi local trước khi dùng;
-không reset/pull đè hoặc tự chuyển main/latest khi tag không dùng được.
-Đọc release/RELEASE.json, kiểm version 1.1.0-rc3 và chạy tools/verify_release.py.
+Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.1.0-rc4.
+Resolve commit thật của tag từ remote, đối chiếu HEAD và ghi lại SHA đã dùng.
+Clone bằng git clone --branch v1.1.0-rc4 --depth 1 vào
+~/.local/share/agent-workflow-kit/v1.1.0-rc4 hoặc vị trí bền vững ngoài mọi đích.
+Nếu đã có clone, kiểm origin, tag/commit, manifest và thay đổi local trước
+khi dùng; không reset/pull đè hoặc tự fallback main/latest hay dùng tag cũ.
+Đọc release/RELEASE.json, kiểm version 1.1.0-rc4 và chạy tools/verify_release.py.
 Thiếu Git/Python 3.11+/quyền/network thì báo điều kiện thiếu, không tự cài thêm.
 
 Tôi chọn ADVISORY, duyệt contract trực tiếp trong chat, một writer. Tôi cho
@@ -32,7 +31,10 @@ Git local exclude. Không sửa product .gitignore, hook/Husky, global config,
 index/source, model/auth/settings; không untrack/unstage/skip-worktree hoặc
 viết đè managed block tùy biến. Không hỏi lại các bước setup đã được ủy quyền.
 
-Đọc BOOTSTRAP.md của đúng tag và chỉ dẫn/override đang hiệu lực. Dùng setup
+Nếu chat đang có việc, chọn điểm dừng an toàn trước setup; giữ test/process
+và output, checkpoint khi cần. Không cài giữa đợt patch hoặc tự hủy test.
+
+Đọc BOOTSTRAP.md của đúng bản và chỉ dẫn/override đang hiệu lực. Dùng setup
 --mode advisory --upgrade: review preview rồi --apply cùng --repo/state-home.
 Nếu nâng cấp, giữ state-home, task/history và các thay đổi đang có; không
 xóa hoặc tạo state mới thay lịch sử. Giữ protocol delegated đã chọn trước
@@ -64,6 +66,22 @@ có binding của lần kiểm riêng; nguồn/contract đổi phải revalidate
 gắn PASS cũ sang nguồn mới. State là báo cáo chưa xác thực, không khôi phục
 quyền từ checkpoint hoặc tự chốt giả định sản phẩm. Từ yêu cầu tiếp theo
 tôi sẽ giao việc bằng ngôn ngữ bình thường.
+
+Lượt chỉ khảo sát/đề xuất/contract trả lời trong chat, chưa gọi helper trừ
+khi cần tracking bền vững/handoff. Sau duyệt triển khai mới serialize đúng
+contract đã trình, lưu/readback/recheck quyết định trước patch đầu tiên.
+Không thêm policy hoặc hành vi chưa được trình vào lúc ghi metadata.
+
+Trước thiết kế tương tác, kiểm một hành trình cụ thể và các giả định gây
+thêm thao tác/chờ; ghi usage_scenario. Kiểm thao tác thực riêng với unit/mock.
+Việc nhỏ rõ không thêm worksheet. Contract/approval giữ nguyên khi refine
+file trong implementation_policy đã trình duyệt; dùng checkpoint với
+implementation_plan, không bắt tôi duyệt lại chỉ vì metadata trong giới hạn.
+Giữ các giới hạn file/rủi ro tôi chỉ rõ. Danh sách file agent dự kiến là kế
+hoạch kỹ thuật; với task theo component, trình cả regression/support liên
+quan và policy hẹp ngay từ đầu. Thiếu policy hoặc state cũ vẫn là EXACT.
+Vượt giới hạn hoặc đổi hành vi/rủi ro cần contract mới. Không chuyển approval
+hoặc PASS sang binding mới; chỉ báo mức kiểm chứng thực đạt.
 
 Với nhiều repo, khai báo từng Git root và write_paths/read_paths trong
 contract; work sources chụp footprint trước test, finish dùng tested_sources_file.

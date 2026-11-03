@@ -43,8 +43,21 @@ def assess(contract, report):
                    and type(x.get('exit_code')) is int and x['exit_code'] == 0
                    and x.get('command') and x.get('output_excerpt') for x in reproduction):
             incomplete.append('Original bug reproduction not exercised successfully')
+    workflow_required=bool(contract.get('usage_scenario'))
+    workflow=[x for x in details if x.get('kind')=='USER_WORKFLOW']
+    exercised=any(x.get('execution_context')=='ACTUAL_WORKFLOW' and x.get('status')=='PASS'
+                  and x.get('executed') is True and type(x.get('exit_code')) is int and x['exit_code']==0
+                  and isinstance(x.get('command'),str) and bool(x['command'].strip())
+                  and isinstance(x.get('output_excerpt'),str) and bool(x['output_excerpt'].strip()) for x in workflow)
+    workflow_failed=any(x.get('execution_context')=='ACTUAL_WORKFLOW' and x.get('executed') is True
+                        and (x.get('status')=='FAIL' or type(x.get('exit_code')) is int and x['exit_code']!=0) for x in workflow)
+    if workflow_required and not exercised:
+        incomplete.append('User workflow not exercised successfully through the actual interaction path; unit/mock/simulation is separate evidence')
     verdict = 'FAILED_REPORTED' if failed else 'PARTIAL_REPORTED' if missing or incomplete else 'VERIFIED_REPORTED'
     return {'reported_verdict': verdict, 'coverage': 'COMPLETE' if not missing and not incomplete else 'INCOMPLETE',
             'missing_criteria': missing, 'incomplete_checks': incomplete, 'failed_checks': failed,
+            'user_workflow':{'required':workflow_required,
+                'status':'FAILED_REPORTED' if workflow_failed else 'EXERCISED_REPORTED' if exercised else 'NOT_EXERCISED_REPORTED' if workflow_required else 'NOT_REQUIRED',
+                'trust':'UNVERIFIED_REPORT'},
             'checks': details, 'trusted': False, 'write_authorized': False,
             'note': 'Coverage of agent reports only; commands were not executed/authenticated by this helper.'}

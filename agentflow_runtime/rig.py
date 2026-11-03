@@ -20,10 +20,29 @@ def meaningful(value, *, min_length=6):
             and not (normalized.startswith('<') and normalized.endswith('>')))
 
 
+def normalize_contract(contract):
+    """Reuse declared workflow/scope facts, never invent impact evidence."""
+    result=dict(contract);derived=[]
+    if meaningful(result.get('usage_scenario')):
+        if 'scenarios' not in result:
+            result['scenarios']=[{'name':'Declared user workflow','disposition':'VERIFY',
+                                 'description':result['usage_scenario'],'derived_from':'usage_scenario'}]
+            derived.append('scenarios from supplied usage_scenario')
+        scope=result.get('scope',{});functional=scope.get('functional') if isinstance(scope,dict) else None
+        if 'impact' not in result and isinstance(functional,list) and functional:
+            repos=result.get('repositories',[])
+            result['impact']={'affected_components':functional,
+                'coordination_scope':[r.get('key') for r in repos if isinstance(r,dict)] if isinstance(repos,list) else [],
+                'derived_from':'DECLARED_SCOPE_ONLY','semantic_verification':False}
+            derived.append('impact inventory from declared scope only; dependencies remain unverified')
+    return result,derived
+
+
 def analyze_readiness(contract:dict)->dict:
     if not isinstance(contract,dict):
         return {'status':'NOT_READY','blockers':['Contract must be a JSON object'],
                 'trusted_approval':False}
+    contract,derived=normalize_contract(contract)
     declared=contract.get('analysis_level','STANDARD')
     if declared not in LEVELS:declared='STANDARD'
     scope=contract.get('scope',{})
@@ -48,6 +67,8 @@ def analyze_readiness(contract:dict)->dict:
     blockers=[]; warnings=[]
     if not meaningful(contract.get('objective')):
         blockers.append('Missing meaningful objective')
+    if 'usage_scenario' in contract and not meaningful(contract['usage_scenario']):
+        blockers.append('usage_scenario must describe concrete inputs, user actions and observable outcome')
     acceptance=contract.get('acceptance')
     if not isinstance(acceptance,list) or not acceptance:
         blockers.append('Missing acceptance criteria')
@@ -104,6 +125,7 @@ def analyze_readiness(contract:dict)->dict:
     return {'status':'READY_FOR_HUMAN_REVIEW' if not blockers else 'NOT_READY',
             'declared_level':declared,'effective_level':effective,
             'routing_triggers':triggers[:8], 'broad_footprint':broad,
+            'input_derivations':derived,
             'blockers':blockers,'warnings':warnings,
             'semantic_correctness_verified':False,
             'trusted_approval':False,'write_authorized':False,

@@ -1,4 +1,4 @@
-"""Agent Workflow Kit v1.1.0-rc3 local process CLI (V3 engine).
+"""Agent Workflow Kit v1.1.0-rc4 local process CLI (V3 engine).
 
 Safe by default: read-only exploration and external-state drafts; no product-code
 mutation, native approvals, execution grants, model calls or CI/CD actions.
@@ -36,11 +36,11 @@ from agentflow_si.operations import mutation_preflight, git_scope_preview, class
 from agentflow_si.workflow import (evidence_impact, evidence_graph_draft, intent_preview,
     profile_exception_proposal, verification_plan, verification_resource_conflicts)
 
-VERSION='1.1.0-rc3'
+VERSION='1.1.0-rc4'
 
 
 def make_parser():
-    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.1.0-rc3 - work start/checkpoint/finish; not OS enforcement')
+    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.1.0-rc4 - work start/checkpoint/finish; not OS enforcement')
     p.add_argument('--repo',required=True,help='Existing project folder')
     p.add_argument('--state-home',help='External local state root')
     sub=p.add_subparsers(dest='action',required=True)
@@ -52,9 +52,9 @@ def make_parser():
     worksub=work.add_subparsers(dest='work_action',required=True)
     for name in ('start','checkpoint','finish','history','sources'):
         examples={
-          'start':'JSON: analysis_level QUICK|STANDARD|DEEP, work_type BUG|FEATURE|MAINTENANCE, objective, scope.functional, preserve, acceptance, verification_strategy. STANDARD adds scenarios(list), impact(object), gaps(list). DEEP also needs risk_summary(string), evidence_sources(list), solution_challenge(object). Use contract-template --level DEEP for field shapes. Sibling repos: repositories=[{key,root:absolute Git root,write_paths:[explicit relative files],read_paths:[]}]. Direct CLI or stdin; do not read implementation source to discover payloads.',
-          'checkpoint':'Use --decision APPROVED --source-ref "actual USER message" --expected-revision N --contract-sha256 SHA [--source relative/file]. Alternatively JSON: {"contract_sha256":"FROM_START_OR_RESUME","expected_revision":1,"decision":{"choice":"APPROVED","source":"actual current-chat USER message"},"source_paths":["app.py"]}. Use the observed revision, never guess. Saves, reads back and rechecks automatically; inspect decision_readback/prepatch_check, stop on BLOCKED/nonzero. No immediate duplicate check; --check revalidates after a gap/change. Multi-repo contracts capture repositories automatically. For new legacy files use new_paths. Next intentional batch JSON: milestone HANDOFF, phase IMPLEMENTING, contract_sha256, expected_revision, source_paths (legacy), prepare_next_batch true, actual summary/completed/remaining/blockers/changed_paths/next_action. Reconcile changes first; approval is not refreshed.',
-          'finish':'JSON: contract_sha256, expected_revision, source_paths, tested_source_hashes captured at test time, summary/completed/remaining/blockers/changed_paths/next_action, checks. Each check: kind (REPRODUCTION for bug), command, executed, exit_code, output_excerpt, status, covers [A1..,P1..]. Runs artifact check and saves verification plus handoff; no extra handoff/artifacts call required after success.',
+          'start':'JSON: analysis_level QUICK|STANDARD|DEEP, work_type BUG|FEATURE|MAINTENANCE, objective, scope.functional, preserve, acceptance, verification_strategy. STANDARD needs scenario/impact facts and gaps(list); usage_scenario can supply the missing scenarios/declared-scope inventory without duplicate input. Explicit invalid fields are not overwritten. DEEP also needs risk_summary(string), evidence_sources(list), solution_challenge(object). Use contract-template --level DEEP for field shapes. Sibling repos: repositories=[{key,root:absolute Git root,write_paths:[explicit relative files],read_paths:[]}]. Direct CLI or stdin; do not read implementation source to discover payloads.',
+          'checkpoint':'Use --decision APPROVED --source-ref "actual USER message" --expected-revision N --contract-sha256 SHA [--source relative/file]. Alternatively JSON: {"contract_sha256":"FROM_START_OR_RESUME","expected_revision":1,"decision":{"choice":"APPROVED","source":"actual current-chat USER message"},"source_paths":["app.py"]}. Use the observed revision, never guess. Saves, reads back and rechecks automatically; inspect decision_readback/prepatch_check, stop on BLOCKED/nonzero. No immediate duplicate check; --check revalidates after a gap/change. Multi-repo contracts capture repositories automatically. For new legacy files use new_paths. Next intentional batch JSON: milestone HANDOFF, phase IMPLEMENTING, contract_sha256, expected_revision, source_paths (legacy), prepare_next_batch true, actual summary/completed/remaining/blockers/changed_paths/next_action. Reconcile changes first; approval is not refreshed. In-scope technical refinement: implementation_plan={repositories:[full footprint],reason:string}; requires initial implementation_policy, preserves the original contract/decision and automatically readbacks/rechecks. EXACT remains default.',
+          'finish':'JSON: contract_sha256, expected_revision, source_paths, tested_source_hashes captured at test time, summary/completed/remaining/blockers/changed_paths/next_action, checks. Each check: kind (REPRODUCTION for bug), command, executed, exit_code, output_excerpt, status, covers [A1..,P1..]. Manifest mode uses tested_sources_file and changed_sources; no flat source_paths/hashes. A usage_scenario requires USER_WORKFLOW with execution_context ACTUAL_WORKFLOW for complete reported verification. Runs artifact check and saves verification plus handoff; no extra handoff/artifacts call required after success.',
           'history':'Read-only paged checkpoint summaries. Use next_before as --before to continue.',
           'sources':'Capture every declared repository/file immediately before tests. --output /OUTSIDE/artifacts/test-batch.json saves an immutable snapshot; finish accepts tested_sources_file. No tests are executed and no DB/product writes occur.'}
         cmd=worksub.add_parser(name,description=examples[name]);cmd.add_argument('topic');cmd.add_argument('--data',help='JSON file OUTSIDE product tree, or - for stdin; see description above')

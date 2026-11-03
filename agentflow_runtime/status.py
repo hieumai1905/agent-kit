@@ -13,6 +13,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
+from agentflow_core import StoreError
 from .delegation import contract_binding
 
 PHASES = {
@@ -196,7 +197,9 @@ def task_status(records, task_id, *, task=None, contract=None, progress_record=N
     progress_binding = _binding(progress, contract)
     if progress.get('source_manifest') is not None:
         from .sources import observe
-        source_freshness = observe(contract['content'], core.store.repo, progress['source_manifest'])
+        from .implementation import effective
+        try:source_freshness = observe(effective(contract,core.store.repo,progress), core.store.repo, progress['source_manifest'])
+        except (StoreError,ValueError,OSError,RuntimeError) as exc:source_freshness={'status':'UNKNOWN','coverage':'INCOMPLETE','reason':str(exc)}
     else:
         from .sources import legacy_coverage
         source_freshness = files.hashes(progress.get('source_hashes'))

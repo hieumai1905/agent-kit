@@ -135,3 +135,28 @@ def legacy_coverage(contract, anchor, hashes, changed_paths=()):
     missing = sorted(set(changed_paths or []) - set(hashes or {}))
     return {'status': 'INCOMPLETE', 'missing_paths': missing} if missing else {
         'status': 'DECLARED_PATHS_ONLY', 'files': len(hashes or {}), 'scope_note': 'Not full-repository coverage'}
+
+
+def changed_files(contract, anchor, data):
+    """Normalize actual changed files without converting them into source hashes."""
+    entries={r['key']:r for r in registry(contract,anchor)}
+    supplied=data.get('changed_sources')
+    legacy=paths(data.get('changed_paths',[]),'changed_paths')
+    if supplied is not None:
+        if not isinstance(supplied,dict):raise StoreError('changed_sources: expected repo key -> relative files')
+        result={}
+        for key,names in supplied.items():
+            if key not in entries:raise StoreError('changed_sources: unknown repository '+str(key))
+            result[key]=paths(names,'changed_sources.'+key)
+            if not set(result[key])<=set(entries[key]['write_paths']):
+                raise StoreError('changed_sources must stay in the declared per-repo write footprint')
+        if legacy and set(legacy)!={name for names in result.values() for name in names}:
+            raise StoreError('changed_paths conflicts with changed_sources; reconcile actual per-repo changes')
+        return result
+    result={}
+    for name in legacy:
+        owners=[key for key,r in entries.items() if name in r['write_paths']]
+        if len(owners)!=1:
+            raise StoreError('changed_paths: unknown/ambiguous file '+name+'; use changed_sources with explicit repo keys')
+        result.setdefault(owners[0],[]).append(name)
+    return result

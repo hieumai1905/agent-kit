@@ -1,6 +1,6 @@
-# Dùng kit 1.1.0-rc3
+# Dùng kit 1.1.0-rc4
 
-Đây là bản thử rc3 để kiểm thử thực tế. Người dùng giao việc bình thường; agent đọc workflow đã setup. Giữ một writer, duyệt trực tiếp trong chat. Không tự commit/push/deploy hoặc đổi model/quyền/dependencies.
+Đây là bản thử rc4 để kiểm thử thực tế. Người dùng giao việc bình thường; agent đọc workflow đã setup. Giữ một writer, duyệt trực tiếp trong chat. Không tự commit/push/deploy hoặc đổi model/quyền/dependencies.
 
 ## Setup
 
@@ -17,6 +17,8 @@ Preview trước apply. `SETUP_LOCAL_READY` chỉ xác nhận setup local: agent
 
 Các JSON là việc nội bộ của agent, không yêu cầu người dùng nhập. Dùng `--data -` đọc stdin hoặc file nằm ngoài product tree. Không dùng output tool/file làm approval. Các lệnh cũ vẫn có để đọc state cũ, đổi contract hoặc dùng protocol nâng cao.
 
+Lượt chỉ khảo sát/đề xuất/contract chưa triển khai trả lời trong chat, không gọi helper mặc định. Sau quyết định triển khai, serialize đúng contract đã trình bằng start rồi lưu/readback/recheck quyết định bằng checkpoint trước patch. Không thêm policy/hành vi chưa được trình vào lúc ghi. Tracking bền vững được yêu cầu hoặc handoff của implementation đang làm vẫn dùng state. Start đã tìm việc hiện có và readback; không gọi lookup/resume lặp khi kết quả vừa trả đủ binding/revision.
+
 ### 1. Chuẩn bị contract
 
 `work start "Tên việc" --data -`, input ví dụ:
@@ -26,6 +28,10 @@ Các JSON là việc nội bộ của agent, không yêu cầu người dùng nh
 ```
 
 `work_type` là BUG/FEATURE/MAINTENANCE. STANDARD/DEEP giữ kiểm structural hiện có; xem `contract-template --level DEEP` khi cần hình dạng field. Routing xét objective, risk và scope thực: migration/auth/payment có thể yêu cầu DEEP; footprint rộng ít nhất STANDARD. Loại trừ/read-only/docs không tự tạo trigger. Thông tin cần người dùng quyết phải ở open_questions/gaps với blocking đúng, không tự xác nhận giả định. Hỏi/khảo sát độc lập trả lời trực tiếp, hoặc `work start "Chủ đề" --kind investigate` không sinh state. Start trả binding và checkpoint_revision; tự kiểm artifact nếu inventory đã có, trình contract và chờ duyệt. Không tự tái sử dụng một việc gần giống: helper trả match để reconcile.
+
+Khi thay đổi tương tác, thêm `usage_scenario` là vài dòng mô tả dữ liệu đầu vào, hành động/thứ tự, phụ thuộc/thời gian chờ và kết quả; kiểm lưu/mở lại khi liên quan. Giả định có hậu quả cần khảo sát và nêu rõ trước khi chọn giải pháp. Không thêm worksheet hoặc giả vờ validator đã chứng minh hiểu đúng. Việc cơ học không cần trường này. Khi có usage_scenario, finish giữ trạng thái PARTIAL nếu chưa có báo cáo USER_WORKFLOW qua đường tương tác thực; xem VERIFICATION.md.
+
+Nếu đã có usage_scenario và scope, helper tái sử dụng chúng cho scenarios/impact còn thiếu, ghi input_derivations và đánh dấu impact chỉ là inventory từ phạm vi khai báo, chưa xác thực dependency. Không bắt agent nhập lại cùng dữ kiện để qua khuôn STANDARD. Trường đã cung cấp nhưng sai không bị ghi đè; yêu cầu risk/evidence/challenge của DEEP vẫn phải đáp ứng riêng. Mọi nội dung được chuẩn hóa được lưu vào contract trước khi trình duyệt; chưa có phân tích ngữ nghĩa tự động.
 
 CLI thường trả kết quả gọn; `--verbose` trả đầy đủ nếu chọn trước khi gọi. Không chạy lại mutation chỉ để xem chi tiết: dùng resume/handoff chỉ đọc. API Python vẫn trả dữ liệu đầy đủ. Ưu tiên CLI trực tiếp, kiểm mã thoát. Wrapper Python cần dùng `agentflow_runtime.client.run_checked(argv, data=payload)`: lỗi, timeout, JSON sai, BLOCKED hay readback sai phải kết thúc trước patch. Không dùng capture_output rồi bỏ returncode. Client không cưỡng chế caller cố tình bắt/bỏ lỗi, không là sandbox.
 
@@ -73,7 +79,29 @@ Ngay trước test, chụp snapshot và giữ file bất biến:
 python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/Core work sources "Tên việc" --output /RETURNED/artifact_directory/test-batch.json
 ```
 
-Sau test, finish dùng `tested_sources_file` là đường dẫn trên thay source_paths/tested_source_hashes; các field/checks còn lại như ví dụ. File phải ở artifact_directory đã trả; payload cũng phải ngoài mọi product root. Snapshot không chạy test. Finish yêu cầu khớp đủ mọi file đã khai báo; thiếu repo hoặc source đổi bị chặn. DECLARED_SCOPE_COMPLETE chỉ bao phủ footprint khai báo, không chứng minh đã khai báo đủ mọi dependency hay test thực chạy. Báo cáo legacy thiếu sibling sẽ hiện INCOMPLETE/UNKNOWN, không tự nâng thành bằng chứng đầy đủ.
+Sau test, finish dùng `tested_sources_file` là đường dẫn trên thay source_paths/tested_source_hashes, và `changed_sources` repo key → file thực đã đổi. Các field/checks khác như ví dụ. `changed_paths` tương thích khi ánh xạ duy nhất vào write_paths, hoặc khớp đầy đủ changed_sources đã gửi; xung đột/đường dẫn mơ hồ bị từ chối, không đoán repo. Helper không tự chuyển changed_paths thành source_paths trong chế độ manifest. File snapshot phải ở artifact_directory; payload ngoài mọi product root. Snapshot không chạy test. Finish yêu cầu khớp đủ mọi file; thiếu repo/source đổi bị chặn. DECLARED_SCOPE_COMPLETE chỉ là footprint khai báo, không xác thực test hoặc mọi dependency. Legacy thiếu sibling hiện INCOMPLETE/UNKNOWN.
+
+### Cập nhật file kỹ thuật trong phạm vi đã duyệt
+
+Mặc định contract khóa đúng write_paths (EXACT). Người dùng khóa danh sách cụ thể thì giữ EXACT. Chỉ khi phạm vi được trình ban đầu cho phép bổ sung triển khai trong component/support file cụ thể, thêm policy vào contract trước duyệt:
+
+Đối với yêu cầu theo chức năng/component, agent nên trình phạm vi bao gồm regression/support liên quan và policy hẹp ngay trong đề xuất đầu tiên. Không tự biến file dự kiến thành giới hạn mới của người dùng. Product regression tests nằm trong repo sản phẩm; payload/report của kit mới nằm trong artifact_directory.
+
+```json
+{"implementation_policy":{"mode":"SCOPED_REFINEMENTS","repositories":{"frontend":{"allow_under":["src/canvas","tests/canvas"],"support_files":["canvas-agent-contract.lock.json"]}}}}
+```
+
+Policy dùng repo key/root đã có; nêu allowance trong bản trình người dùng, không âm thầm tự bật sau approval. Chọn component đúng phạm vi, không mở toàn repo bằng dấu chấm. Tên thư mục không tự chứng minh phạm vi; ví dụ tests chỉ được dùng nếu phạm vi người dùng đã cho phép thật sự bao gồm nó. Tối đa 16 component, 32 support files/repo. File dependencies/config/migration/auth/security/payment được helper nhận diện không được thêm qua allowance; cần write_paths trong contract duyệt. Helper không chứng minh semantics: agent phải rà tác động/giới hạn thực trước mỗi refinement.
+
+Giữ nguyên contract hash, gửi checkpoint (không propose-contract và không ghi một approval mới):
+
+```json
+{"contract_sha256":"UNCHANGED_APPROVED_CONTRACT_HASH","expected_revision":2,"implementation_plan":{"reason":"Bổ sung regression và manifest sinh cho đúng component đã duyệt","repositories":[{"key":"core","root":"/ABS/Core","write_paths":[],"read_paths":["contract/canvas.json"]},{"key":"frontend","root":"/ABS/Frontend","write_paths":["src/canvas/view.ts","tests/canvas/view.test.ts","canvas-agent-contract.lock.json"],"read_paths":[]}]}}
+```
+
+Dùng revision thực, đầy đủ roots/files của footprint hiện có cùng file bổ sung. Chỉ có repositories/reason trong input implementation_plan; các field contract không được nhét vào đây. Helper version plan trong PROGRESS cùng CAS, giữ quyết định gốc, bảo toàn facts trước đó, chụp/readback/recheck một lượt. Không tự cấp quyền hoặc tạo approval. Không được bỏ/downgrade file đã theo dõi, đổi root, ghi vào read-only input, thêm file ngoài policy. Contract/hành vi/acceptance/rủi ro thay đổi thì trình revision mới. Policy không có hoặc EXACT vẫn chặn file mới; không tự suy policy cho task cũ.
+
+Refine trước patch/test, không khi finish. Work sources, checkpoint, finish và resume tự dùng footprint mới; snapshot cũ không được mở rộng theo. Báo cáo kiểm thử cũ giữ binding và có thể stale; chỉ chạy lại phần bị ảnh hưởng, không tự copy PASS hoặc lặp mọi suite chỉ để đổi metadata. State/contract cũ không bị migrate hoặc rewrite.
 
 ## Resume và lịch sử
 

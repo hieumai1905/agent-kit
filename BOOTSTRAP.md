@@ -1,19 +1,21 @@
-# Setup v1.1.0-rc3
+# Setup v1.1.0-rc4
 
 Chỉ áp dụng khi người dùng yêu cầu setup. Cài workflow không phê duyệt task code hoặc tạo delegation. Đây là bản thử để kiểm thử thực tế; giữ nguyên tag và clone cũ để rollback.
 
 ## Clone đúng bản và đúng đích
 
 1. Chốt `TARGET_CWD` bằng `pwd -P` trước clone/cd. Đối chiếu Git root. Nếu root ở cha, nhiều repo hoặc chưa có Git thì làm rõ đích; không nâng root, cài hàng loạt hoặc `git init`. Đích không được là repo kit. Với yêu cầu nâng cấp một phiên đang làm, giữ đúng repo/state đã xác định trong phiên, không suy lại đích thành thư mục workspace cha.
-2. Đặt kit ngoài product tree, mặc định `~/.local/share/agent-workflow-kit/v1.1.0-rc3`. Clone đúng tag:
+2. Clone đúng tag ra ngoài mọi product tree, mặc định ~/.local/share/agent-workflow-kit/v1.1.0-rc4:
 
 ```sh
-git clone --branch v1.1.0-rc3 --depth 1 https://github.com/hieumai1905/agent-kit.git /ABS/KIT
+git clone --branch v1.1.0-rc4 --depth 1 https://github.com/hieumai1905/agent-kit.git /ABS/KIT
 ```
 
-Đối chiếu origin, HEAD và commit của tag remote; SHA bắt buộc trong prompt hiện hành trên main phải khớp. Giữ lại SHA thực đã dùng. Nếu dùng ZIP, đối chiếu checksum được giao và manifest. Manifest kiểm toàn vẹn, không xác thực nhà phát hành. Không tự fallback main/latest hoặc thay clone cũ. `/ABS/KIT` và `/ABS/PROJECT` là placeholder do agent điền bằng canonical paths đã chốt.
+Đối chiếu origin, HEAD và commit thật của tag; SHA bắt buộc trong prompt hiện hành trên main phải khớp. Giữ lại SHA thực đã dùng. Nếu clone đã tồn tại, kiểm trạng thái trước khi dùng; không reset/pull đè, đổi main/latest hoặc ghi đè clone cũ. ZIP cần đối chiếu checksum được giao và manifest; manifest chỉ kiểm toàn vẹn, không xác thực nhà phát hành. /ABS/KIT và /ABS/PROJECT là canonical paths đã chốt.
 
-3. Cần Git và Python 3.11+. Chạy verify_release.py và `python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT version`: manifest PASS, version 1.1.0-rc3. Đọc RELEASE.json, README và hướng dẫn liên quan. Không tự cài dependencies, đổi auth/model/settings. Smoke report sinh trong kit ngoài project, không thay runtime/policy.
+Với chat đang làm việc, nâng cấp tại điểm dừng an toàn: giữ test/process và output; checkpoint phần đang làm khi cần, ghi baseline source/HEAD/index trước setup. Không đổi workflow giữa đợt patch hoặc tự hủy test để cài kit.
+
+3. Cần Git và Python 3.11+. Chạy verify_release.py và `python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT version`: manifest PASS, version 1.1.0-rc4. Đọc RELEASE.json, README và hướng dẫn liên quan. Không tự cài dependencies, đổi auth/model/settings. Smoke report sinh trong kit ngoài project, không thay runtime/policy.
 
 ## Nâng cấp và áp dụng
 
@@ -30,7 +32,7 @@ Truyền cùng `--state-home /ABS/STATE` cho mọi lệnh nếu phiên đã dùn
 6. Setup tạo backup, guidance, inventory ngoài repo và Git local exclude đúng root paths. Không sửa product .gitignore/hooks/global config/index. Partial failure phải báo BLOCKED, transaction/backup và hiện trạng, không rollback mù hoặc báo READY. Chỉ dựng guidance/metadata; không sửa source sản phẩm trong setup.
 7. Đọc lại AGENTS.md và CLAUDE.md sau cài, kiểm mode/helper/version/đích/state, nội dung riêng và chỉ dẫn ưu tiên. SETUP_LOCAL_READY chưa tự xác nhận provider nạp hướng dẫn. Đọc chi tiết được tham chiếu theo nhu cầu.
 8. Kiểm doctor, `artifacts inventory`, `artifacts check`, baseline source/HEAD/index và backup. Doctor exit 0 chưa đủ: đọc JSON state healthy và guidance đều ADVISORY, không LEGACY_OR_CUSTOM. Source ngoài guidance, HEAD và staged index phải giữ nguyên. Untracked status có thể giảm vì local exclude, không phải xóa file. Không kiểm được/truncated thì dừng READY.
-9. Chỉ báo SETUP_READY khi đã quan sát: đích; tag/SHA/version; mode; readback hai guidance và việc áp dụng trong chat; state/backup transaction; inventory/exclude/staged check; bảo toàn source/index/HEAD. Nếu session chưa áp dụng được thì NEEDS_SESSION_REFRESH; conflict thì BLOCKED cùng nguyên nhân cụ thể. Sau nâng cấp, resume công việc đang có, đối chiếu nguồn/contract và quyết định hiện tại; không tạo lại task hoặc suy quyền mới từ state. Legacy nhiều repo thiếu footprint sẽ là INCOMPLETE/UNKNOWN; phải khai báo/duyệt revision mới và chạy test phù hợp, không tự nâng bằng chứng cũ.
+9. Chỉ báo SETUP_READY khi đã quan sát: đích; checksum/version; mode; readback hai guidance và việc áp dụng trong chat; state/backup transaction; inventory/exclude/staged check; bảo toàn source/index/HEAD. Nếu session chưa áp dụng được thì NEEDS_SESSION_REFRESH; conflict thì BLOCKED cùng nguyên nhân cụ thể. Sau nâng cấp, resume công việc đang có, đối chiếu nguồn/contract và quyết định hiện tại; không tạo lại task hoặc suy quyền mới từ state. Legacy nhiều repo thiếu footprint sẽ là INCOMPLETE/UNKNOWN; phải khai báo/duyệt revision mới và chạy test phù hợp, không tự nâng bằng chứng cũ.
 
 ## File kit và rollback
 

@@ -6,13 +6,15 @@ State ngoài repo là báo cáo UNVERIFIED, không cấp quyền hay xác thực
 
 | Mốc | Nội dung |
 |---|---|
-| HANDOFF/WAITING_DECISION | Contract đã trình, phần đang chờ và bước tiếp theo; work start tự lưu |
+| HANDOFF/WAITING_DECISION | Khi có yêu cầu tracking bền vững hoặc handoff của việc đã có; work start tự lưu khi được dùng |
 | CONTRACT_DECISION | Quyết định thực được agent quan sát, binding và source baseline; lưu/readback/recheck tự động trong một lệnh trước patch |
 | SCOPE_CHANGE | Phạm vi/contract mới và phần cần quyết định lại |
 | IMPLEMENTATION_VERIFICATION | Source kiểm thử, checks, kết quả và nội dung bàn giao; work finish lưu cùng một checkpoint |
 | HANDOFF | Dừng giữa chừng: hoàn thành, còn lại, blockers và next action |
 
 Chỉ lưu ở mốc thay đổi có ý nghĩa, không mỗi message hoặc câu hỏi độc lập. Agent dùng work checkpoint, expected_revision từ phản hồi trước/resume và contract_sha256 đã đọc. Xung đột thì reread/reconcile, không tự thay revision để ghi đè. Quyết định/provenance được mang tiếp nhưng không tự trở thành approval của contract khác. Save có readback; lỗi phải báo chưa lưu.
+
+Luồng direct ADVISORY thông thường: lượt chỉ khảo sát/đề xuất/contract ở trong chat, không mặc định lập state. Sau khi được duyệt triển khai, serialize đúng phạm vi đã trình bằng start, lưu/readback/recheck quyết định trước patch. Không thêm policy hoặc nghĩa mới khi serialize. Việc đang triển khai dừng/resume vẫn phải checkpoint. Protocol delegated được chọn riêng giữ yêu cầu binding/chấp thuận riêng của nó; quy tắc nhẹ cho lượt phân tích không tạo hoặc gia hạn H/D.
 
 ## Resume
 

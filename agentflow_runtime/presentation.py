@@ -5,9 +5,12 @@ def work_result(value):
     keys=('action','task_id','record_id','revision','contract_sha256','readback_matches',
           'saved','no_changes','status','artifact_directory','handoff_saved','handoff_revision',
           'auto_complete','source_snapshot_file','scope_sha256','repositories','files',
+          'existing_task_lookup_performed',
           'read_only','read_only_product_and_db','next_action','trusted','write_authorized')
     result={key:value[key] for key in keys if key in value}
     if 'binding' in value:result['binding']=value['binding']
+    if value.get('input_derivations'):result['input_derivations']=value['input_derivations']
+    if 'implementation_plan' in value:result['implementation_plan']=value['implementation_plan']
     if 'matches' in value:
         match=value['matches'];result['matches']={k:match[k] for k in ('status','selected_task_id','choices') if k in match}
     if 'checkpoint' in value:result['checkpoint_revision']=value['checkpoint']['revision']
@@ -20,7 +23,7 @@ def work_result(value):
         result['prepatch_check']={k:check[k] for k in ('status','reasons','current_chat_decision_must_be_revalidated','write_authorized') if k in check}
     if 'verification' in value:
         v=value['verification']
-        result['verification']={k:v[k] for k in ('reported_verdict','coverage','missing_criteria','incomplete_checks','failed_checks','source_coverage','trusted','write_authorized') if k in v}
+        result['verification']={k:v[k] for k in ('reported_verdict','coverage','missing_criteria','incomplete_checks','failed_checks','source_coverage','user_workflow','trusted','write_authorized') if k in v}
     if 'artifact_check' in value:
         a=value['artifact_check'];result['artifact_check']={k:a[k] for k in ('status','reasons','unresolved_paths') if k in a}
     if 'routing' in value:
@@ -33,6 +36,8 @@ def work_result(value):
 
 
 def error_hint(message):
+    if any(x in message.casefold() for x in ('implementation_plan','implementation_policy','implementation plan','refinement','contract review')):
+        return {'field':'implementation_plan','hint':'Checkpoint a bounded technical refinement under the unchanged approved contract; default EXACT or outside/protected files need contract review. Read USAGE.md only if the policy shape is missing.'}
     if 'milestone' in message:
         return {'field':'milestone','allowed':['CONTRACT_DECISION','SCOPE_CHANGE','IMPLEMENTATION_VERIFICATION','HANDOFF'],
                 'hint':'Ordinary in-scope progress uses HANDOFF with phase IMPLEMENTING'}
