@@ -2,7 +2,7 @@
 
 Mở agent tại thư mục dự án và gửi nguyên khối dưới đây. Sau setup, giao việc bằng ngôn ngữ bình thường. Đích mặc định là **thư mục đang làm việc khi nhận prompt**, được chốt trước clone/cd. Đây là bản thử, chưa có kết luận giảm tổng usage hoặc nghiệm thu UI thật. Prompt không tự cập nhật các chat khác.
 
-Runtime tag: **v1.1.0-slim-candidate.2**. Resolve commit của tag từ remote và đối chiếu HEAD trước khi dùng; không fallback main/latest. Bản prompt trên main pin thêm SHA cụ thể sau khi tạo runtime commit.
+Runtime tag: **v1.1.0-slim-candidate.2** · commit bắt buộc: `dc6c26c180dbe7894350e472f9231c09571d6a6c`. Đối chiếu cả tag và HEAD; không fallback main/latest.
 
 ```text
 Thiết lập và áp dụng Agent Workflow Kit v1.1.0-slim-candidate.2 cho thư mục
@@ -16,7 +16,9 @@ Không liên hệ hoặc cập nhật các chat khác.
 
 Repo kit: https://github.com/hieumai1905/agent-kit.git
 Tag bắt buộc: v1.1.0-slim-candidate.2.
-Resolve commit thật của tag từ remote, đối chiếu HEAD và ghi SHA đã dùng.
+Commit bắt buộc: dc6c26c180dbe7894350e472f9231c09571d6a6c.
+Resolve peeled commit của tag từ remote (không dùng annotated tag object),
+đối chiếu với SHA trên và HEAD; lệch thì dừng, không tự fallback. Ghi SHA đã dùng.
 Clone git clone --branch v1.1.0-slim-candidate.2 --depth 1 vào
 ~/.local/share/agent-workflow-kit/v1.1.0-slim-candidate.2 hoặc vị trí bền vững
 ngoài mọi product tree. Clone đã có phải kiểm origin, commit, manifest và
