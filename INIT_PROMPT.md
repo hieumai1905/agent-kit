@@ -2,7 +2,7 @@
 
 Mở agent tại thư mục dự án rồi gửi nguyên khối dưới đây. Agent tự clone và setup; sau đó bạn giao việc bình thường. **Thư mục làm việc hiện tại lúc nhận prompt là đích mặc định**, được chốt trước khi clone hoặc đổi thư mục.
 
-Bản hiện hành: **v1.1.0-rc4**, bản thử để kiểm thử thực tế. Runtime pin theo tag; prompt hiện hành trên `main` sẽ pin thêm SHA cụ thể. Giữ nguyên các tag, clone và state cũ.
+Bản hiện hành: **v1.1.0-rc4**, bản thử để kiểm thử thực tế. Runtime pin theo tag; prompt hiện hành trên `main` pin thêm SHA cụ thể. Giữ nguyên các tag, clone và state cũ.
 
 ```text
 Thiết lập và áp dụng Agent Workflow Kit v1.1.0-rc4 cho thư mục làm việc
@@ -15,7 +15,8 @@ canonical Git root; nếu root ở cha, có nhiều repo hoặc chưa có Git, l
 đích trước khi apply. Không tự nâng root, chọn repo con, git init hoặc cài hàng loạt.
 
 Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.1.0-rc4.
-Resolve commit thật của tag từ remote, đối chiếu HEAD và ghi lại SHA đã dùng.
+Commit bắt buộc phải khớp: b0941cd42a0dd2728e19817a7a37cb3a92ae33d9.
+Đối chiếu HEAD và commit thật của tag; ghi lại SHA đã dùng.
 Clone bằng git clone --branch v1.1.0-rc4 --depth 1 vào
 ~/.local/share/agent-workflow-kit/v1.1.0-rc4 hoặc vị trí bền vững ngoài mọi đích.
 Nếu đã có clone, kiểm origin, tag/commit, manifest và thay đổi local trước
