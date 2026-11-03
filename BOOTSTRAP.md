@@ -1,21 +1,23 @@
-# Setup v1.1.0-rc4
+# Setup v1.1.0-slim-candidate.2
+
+> Bản thử đã qua sàng lọc code, chưa xác nhận hiệu quả tổng quát hoặc UI thật. Chỉ setup/nâng cấp khi người dùng chủ động yêu cầu trong đúng chat; phát hành trên Git không tự cập nhật phiên đang chạy. Luồng thường xem docs/SLIM.md.
 
 Chỉ áp dụng khi người dùng yêu cầu setup. Cài workflow không phê duyệt task code hoặc tạo delegation. Đây là bản thử để kiểm thử thực tế; giữ nguyên tag và clone cũ để rollback.
 
 ## Clone đúng bản và đúng đích
 
 1. Chốt `TARGET_CWD` bằng `pwd -P` trước clone/cd. Đối chiếu Git root. Nếu root ở cha, nhiều repo hoặc chưa có Git thì làm rõ đích; không nâng root, cài hàng loạt hoặc `git init`. Đích không được là repo kit. Với yêu cầu nâng cấp một phiên đang làm, giữ đúng repo/state đã xác định trong phiên, không suy lại đích thành thư mục workspace cha.
-2. Clone đúng tag ra ngoài mọi product tree, mặc định ~/.local/share/agent-workflow-kit/v1.1.0-rc4:
+2. Clone đúng tag ra ngoài mọi product tree, mặc định ~/.local/share/agent-workflow-kit/v1.1.0-slim-candidate.2:
 
 ```sh
-git clone --branch v1.1.0-rc4 --depth 1 https://github.com/hieumai1905/agent-kit.git /ABS/KIT
+git clone --branch v1.1.0-slim-candidate.2 --depth 1 https://github.com/hieumai1905/agent-kit.git /ABS/KIT
 ```
 
 Đối chiếu origin, HEAD và commit thật của tag; SHA bắt buộc trong prompt hiện hành trên main phải khớp. Giữ lại SHA thực đã dùng. Nếu clone đã tồn tại, kiểm trạng thái trước khi dùng; không reset/pull đè, đổi main/latest hoặc ghi đè clone cũ. ZIP cần đối chiếu checksum được giao và manifest; manifest chỉ kiểm toàn vẹn, không xác thực nhà phát hành. /ABS/KIT và /ABS/PROJECT là canonical paths đã chốt.
 
 Với chat đang làm việc, nâng cấp tại điểm dừng an toàn: giữ test/process và output; checkpoint phần đang làm khi cần, ghi baseline source/HEAD/index trước setup. Không đổi workflow giữa đợt patch hoặc tự hủy test để cài kit.
 
-3. Cần Git và Python 3.11+. Chạy verify_release.py và `python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT version`: manifest PASS, version 1.1.0-rc4. Đọc RELEASE.json, README và hướng dẫn liên quan. Không tự cài dependencies, đổi auth/model/settings. Smoke report sinh trong kit ngoài project, không thay runtime/policy.
+3. Cần Git và Python 3.11+. Chạy verify_release.py và `python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT version`: manifest PASS, version 1.1.0-slim-candidate.2. Đọc RELEASE.json, README và hướng dẫn liên quan. Không tự cài dependencies, đổi auth/model/settings. Smoke report sinh trong kit ngoài project, không thay runtime/policy.
 
 ## Nâng cấp và áp dụng
 

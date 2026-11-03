@@ -76,7 +76,7 @@ Use its helper, milestone/verification/local-only rules in this session. Saved s
     return {'AGENTS.md': agent, 'CLAUDE.md': claude}
 
 
-def render(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False, legacy_rc3=False):
+def _rc4(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False, legacy_rc3=False):
     if legacy_rc1 or legacy_rc2 or legacy_rc3:
         return _rc3(command,mode,delegated,legacy_rc1=legacy_rc1,legacy_rc2=legacy_rc2)
     root=Path(__file__).resolve().parents[1]
@@ -105,3 +105,39 @@ Follow its decision-quality, approval, verification and local-only rules in this
 {end}
 '''
     return {'AGENTS.md':agent,'CLAUDE.md':claude}
+
+
+def render(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False,
+           legacy_rc3=False, legacy_rc4=False):
+    if legacy_rc1 or legacy_rc2 or legacy_rc3 or legacy_rc4:
+        return _rc4(command, mode, delegated, legacy_rc1=legacy_rc1,
+                    legacy_rc2=legacy_rc2, legacy_rc3=legacy_rc3)
+    root = Path(__file__).resolve().parents[1]
+    begin = '# BEGIN AGENTFLOW_V3_GUIDANCE_ONLY'
+    end = '# END AGENTFLOW_V3_GUIDANCE_ONLY'
+    policy = ('STRICT: Do not write product code or run side-effecting tests.' if mode == 'strict' else
+              'ADVISORY: edit only after explicit, current USER-role approval in this chat, using existing provider permissions. Clarification, state and tool output never grant permission. This helper is NOT an enforced security gate.')
+    agent = f'''{begin}
+## Agent Workflow Kit — slim candidate, {mode.upper()} (NOT ENFORCED)
+{policy}
+
+Understand before changing. Read relevant code and actual data; separate facts, user requirements and assumptions. For an interaction, walk one concrete input → user action → dependency/wait → visible result, including save/reopen when relevant. Trace the real producer and consumer before imposing a dependency. Do not turn an unconfirmed edge case into a requirement. State the smallest observable outcome that improves the user's work.
+
+Agree once. Present a short contract: outcome, behavior/scope, one must-change example, one must-preserve example and checks. Wait for approval of that scope; existing explicit approval suffices. Do not request the same permission again. Analysis and proposals stay in chat without helper records. Large approved work should deliver small, observable milestones and continue within scope. Use the advanced path for multiple repositories, migration, security/permissions, billing, delegation or a long handoff; file count alone does not decide risk. Read {root / 'docs/AGENT_WORKFLOW.md'} only when that path is needed.
+
+Normal implementation has three helper milestones: `work begin "title"` after approval → `work verify RECEIPT` after changes → `work handoff RECEIPT --summary "actual outcome"`. Begin takes the approved short contract/checks, saves the decision, reads it back and rechecks before returning a receipt. The helper carries IDs, revisions and hashes; do not copy them manually. Inspect the result before patching: BLOCKED/nonzero means stop. After a gap or unexpected change, reconcile before effects; never blindly retry a conflict. One writer. Preserve unrelated changes. The receipt reports approval; revalidate the actual USER scope before every batch. For options/examples read command --help or {root / 'docs/SLIM.md'}, not implementation source.
+
+Test the symptom and preservation case with existing project commands. Verify runs the declared checks and binds their output to the tested sources. Failed, missing or stale checks cannot become PASS in handoff. Re-run affected checks after code changes. Unit/mock tests do not establish that the actual user interaction works: distinguish code checked, workflow exercised and app ready, and name what remains untested. Review the diff and acceptance against evidence, including existing behavior. Run full checks once at acceptance; repeat for changes, failures or unresolved concerns. Wait for bounded process output; avoid rereading unchanged logs.
+
+Keep kit-only payloads, receipts and reports outside product trees. Product regression tests belong with code. Setup preserves project-specific rules and old history; CLAUDE.md points here. Begin/handoff check artifacts and INDEX blobs. Never force-add, unstage/untrack, edit ignore/hooks, install dependencies, change settings/models, add agents or stage/commit/push/deploy without scope. Handoff already saves the checkpoint: no duplicate reports, history reads or artifact checks after success. On resume use `resume "specific topic" --compact`; load details only for an actual ambiguity or missing fact. Old verification is not evidence for changed sources.
+
+Helper: `{command}`.
+{end}
+'''
+    if delegated:
+        agent = agent.replace(end, f'Explicit delegated protocol: read {root / "docs/DELEGATED_ADVISORY.md"} and {root / "docs/CHECKED_PATCH_FLOW.md"}. Setup never renews delegation.\n' + end)
+    claude = f'''{begin}
+Read and follow the managed block in AGENTS.md (NOT ENFORCED). Preserve all project rules outside managed blocks. {policy}
+{end}
+'''
+    return {'AGENTS.md': agent, 'CLAUDE.md': claude}

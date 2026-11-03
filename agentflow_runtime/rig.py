@@ -62,7 +62,7 @@ def analyze_readiness(contract:dict)->dict:
     risk_fields += [('scope.functional/write_paths',text) for text in relevant]
     triggers=[{'field':field,'term':term} for field,text in risk_fields for term in CRITICAL_TERMS if term in text.casefold()]
     risk_alert=bool(triggers)
-    broad=len(relevant)>5 or any('/' in text and not re.search(r'\.[a-z0-9]{1,8}(?:$|[: )])',text) for text in relevant)
+    broad=any('/' in text and not re.search(r'\.[a-z0-9]{1,8}(?:$|[: )])',text) for text in relevant)
     effective='DEEP' if risk_alert else 'STANDARD' if declared=='QUICK' and broad else declared
     blockers=[]; warnings=[]
     if not meaningful(contract.get('objective')):

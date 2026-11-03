@@ -4,7 +4,7 @@
 def work_result(value):
     keys=('action','task_id','record_id','revision','contract_sha256','readback_matches',
           'saved','no_changes','status','artifact_directory','handoff_saved','handoff_revision',
-          'auto_complete','source_snapshot_file','scope_sha256','repositories','files',
+          'auto_complete','source_snapshot_file','scope_sha256','repositories','files','receipt','checks','reasons',
           'existing_task_lookup_performed',
           'read_only','read_only_product_and_db','next_action','trusted','write_authorized')
     result={key:value[key] for key in keys if key in value}

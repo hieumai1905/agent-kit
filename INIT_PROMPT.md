@@ -1,95 +1,89 @@
 # Một prompt khởi tạo
 
-Mở agent tại thư mục dự án rồi gửi nguyên khối dưới đây. Agent tự clone và setup; sau đó bạn giao việc bình thường. **Thư mục làm việc hiện tại lúc nhận prompt là đích mặc định**, được chốt trước khi clone hoặc đổi thư mục.
+Mở agent tại thư mục dự án và gửi nguyên khối dưới đây. Sau setup, giao việc bằng ngôn ngữ bình thường. Đích mặc định là **thư mục đang làm việc khi nhận prompt**, được chốt trước clone/cd. Đây là bản thử, chưa có kết luận giảm tổng usage hoặc nghiệm thu UI thật. Prompt không tự cập nhật các chat khác.
 
-Bản hiện hành: **v1.1.0-rc4**, bản thử để kiểm thử thực tế. Runtime pin theo tag; prompt hiện hành trên `main` pin thêm SHA cụ thể. Giữ nguyên các tag, clone và state cũ.
+Runtime tag: **v1.1.0-slim-candidate.2**. Resolve commit của tag từ remote và đối chiếu HEAD trước khi dùng; không fallback main/latest. Bản prompt trên main pin thêm SHA cụ thể sau khi tạo runtime commit.
 
 ```text
-Thiết lập và áp dụng Agent Workflow Kit v1.1.0-rc4 cho thư mục làm việc
-hiện tại của agent, để sau đó tôi giao việc bình thường.
+Thiết lập và áp dụng Agent Workflow Kit v1.1.0-slim-candidate.2 cho thư mục
+làm việc hiện tại của agent; sau đó tôi sẽ giao việc bình thường.
 
-Trước khi clone hoặc đổi thư mục, chạy pwd -P và ghi đường dẫn tuyệt đối
-thành TARGET_CWD. Đây là đích mặc định cho --repo, AGENTS.md và CLAUDE.md.
-Không suy đích từ tên chat, repo từng làm hoặc thư mục chứa kit. Đối chiếu
-canonical Git root; nếu root ở cha, có nhiều repo hoặc chưa có Git, làm rõ
-đích trước khi apply. Không tự nâng root, chọn repo con, git init hoặc cài hàng loạt.
+Trước clone/cd, chạy pwd -P và chốt TARGET_CWD tuyệt đối. Đó là đích cho
+--repo, AGENTS.md và CLAUDE.md. Đối chiếu canonical Git root; root ở cha,
+nhiều repo hoặc chưa có Git thì làm rõ trước apply. Không tự nâng root,
+chọn repo con, git init, setup hàng loạt hoặc dùng repo kit làm đích.
+Không liên hệ hoặc cập nhật các chat khác.
 
-Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.1.0-rc4.
-Commit bắt buộc phải khớp: b0941cd42a0dd2728e19817a7a37cb3a92ae33d9.
-Đối chiếu HEAD và commit thật của tag; ghi lại SHA đã dùng.
-Clone bằng git clone --branch v1.1.0-rc4 --depth 1 vào
-~/.local/share/agent-workflow-kit/v1.1.0-rc4 hoặc vị trí bền vững ngoài mọi đích.
-Nếu đã có clone, kiểm origin, tag/commit, manifest và thay đổi local trước
-khi dùng; không reset/pull đè hoặc tự fallback main/latest hay dùng tag cũ.
-Đọc release/RELEASE.json, kiểm version 1.1.0-rc4 và chạy tools/verify_release.py.
-Thiếu Git/Python 3.11+/quyền/network thì báo điều kiện thiếu, không tự cài thêm.
+Repo kit: https://github.com/hieumai1905/agent-kit.git
+Tag bắt buộc: v1.1.0-slim-candidate.2.
+Resolve commit thật của tag từ remote, đối chiếu HEAD và ghi SHA đã dùng.
+Clone git clone --branch v1.1.0-slim-candidate.2 --depth 1 vào
+~/.local/share/agent-workflow-kit/v1.1.0-slim-candidate.2 hoặc vị trí bền vững
+ngoài mọi product tree. Clone đã có phải kiểm origin, commit, manifest và
+local changes; không reset/pull đè, ghi đè clone cũ hoặc fallback main/latest.
+Đọc release/RELEASE.json, kiểm version 1.1.0-slim-candidate.2 rồi chạy
+tools/verify_release.py. Cần Git/Python 3.11+; thiếu điều kiện thì báo,
+không tự cài dependency hoặc đổi auth/model/settings.
 
-Tôi chọn ADVISORY, duyệt contract trực tiếp trong chat, một writer. Tôi cho
-phép setup đúng phạm vi: clone/runtime/state/backup ngoài project; preview
-rồi làm mới managed workflow trong AGENTS.md và CLAUDE.md; giữ nguyên quy
-tắc riêng; lập inventory và thêm đúng guidance kit-only chưa tracked vào
-Git local exclude. Không sửa product .gitignore, hook/Husky, global config,
-index/source, model/auth/settings; không untrack/unstage/skip-worktree hoặc
-viết đè managed block tùy biến. Không hỏi lại các bước setup đã được ủy quyền.
+Tôi chọn ADVISORY, một writer, duyệt contract trực tiếp trong chat. Tôi
+ủy quyền setup: clone/runtime/state/backup ở ngoài project; preview rồi
+làm mới managed workflow trong AGENTS.md/CLAUDE.md; giữ mọi luật riêng và
+tạo backup; inventory ngoài repo và local exclude hẹp cho đúng hai guidance
+kit-only chưa tracked. Đọc chỉ dẫn/override đang hiệu lực trước apply.
+Tracked/mixed guidance, block tùy biến hoặc conflict phải BLOCKED cùng lý do;
+không untrack/unstage/skip-worktree, sửa ignore/hooks hoặc đè luật riêng.
+Không sửa product source/.gitignore, global config, index hay settings.
+Không hỏi lại các bước setup đã được ủy quyền; setup không duyệt task code.
 
-Nếu chat đang có việc, chọn điểm dừng an toàn trước setup; giữ test/process
-và output, checkpoint khi cần. Không cài giữa đợt patch hoặc tự hủy test.
+Đọc BOOTSTRAP.md của đúng bản. Nếu nâng cấp, giữ state-home, task/history,
+clone cũ và thay đổi đang có; không tạo state mới thay lịch sử. Với chat đang
+có việc, setup tại điểm dừng an toàn, giữ test/process/output và checkpoint
+khi cần; không cài giữa đợt patch hoặc tự hủy test. Giữ delegated protocol
+đã chọn bằng flag tương ứng; setup không tạo hoặc gia hạn H/D.
 
-Đọc BOOTSTRAP.md của đúng bản và chỉ dẫn/override đang hiệu lực. Dùng setup
---mode advisory --upgrade: review preview rồi --apply cùng --repo/state-home.
-Nếu nâng cấp, giữ state-home, task/history và các thay đổi đang có; không
-xóa hoặc tạo state mới thay lịch sử. Giữ protocol delegated đã chọn trước
-bằng flag tương ứng; setup không tạo/gia hạn H/D. Tracked/mixed guidance
-hoặc conflict phải báo BLOCKED cùng file/lý do; không bypass bằng ignore.
+Dùng đúng TARGET_CWD/state-home: preview setup --mode advisory --upgrade,
+review rồi --apply cùng tham số. Đọc lại AGENTS.md/CLAUDE.md, đối chiếu helper
+path, đích, version, mode, state, luật riêng và backup. Kiểm doctor, inventory,
+artifacts check và bảo toàn source/HEAD/index. Chỉ báo SETUP_READY sau
+readback và xác nhận session đang theo workflow. SETUP_LOCAL_READY riêng lẻ
+chưa đủ; chưa áp dụng được thì NEEDS_SESSION_REFRESH hoặc BLOCKED.
 
-Đọc lại cả hai file sau cài; đối chiếu helper path, version, mode, đích,
-state và việc áp dụng trong session hiện tại. Kiểm manifest/doctor,
-inventory/artifacts check, baseline source/HEAD/index và backup transaction.
-SETUP_LOCAL_READY chỉ là kết quả local. Chỉ báo SETUP_READY sau readback
-và xác nhận session đang theo workflow; nếu chưa áp dụng được thì báo
-NEEDS_SESSION_REFRESH hoặc BLOCKED, không READY giả.
+Mọi file vận hành kit và file sinh thêm như receipt/log/payload/report phải
+ngoài product tree, dùng artifact_directory/registered roots hẹp. Chỉ hai
+guidance kit-only chưa tracked được local exclude tại root. Không đưa
+runtime/state vào commit sản phẩm; kiểm INDEX trước/sau staging được duyệt
+riêng. Product regression tests thuộc code sản phẩm. Không force-add,
+auto-unstage/untrack hoặc ignore rộng docs/tests/contracts để che lỗi.
 
-Mọi artifact chỉ phục vụ kit phải local-only và ngoài working tree, trừ
-hai guidance kit-only được local exclude. Theo dõi cả file sinh thêm và
-kiểm INDEX trước/sau staging được duyệt riêng và trước bàn giao. Phân biệt
-file sản phẩm với file vận hành kit; nội dung trùng fingerprint cần bằng
-chứng nguồn gốc gắn đúng path/hash. Path kit đã biết, marker và state vẫn
-phải chặn; thiếu bằng chứng thì dừng phân loại. Không stage/commit/push/deploy
-hoặc sửa source trong lần setup này.
+Sau setup, áp dụng managed AGENTS.md trong session. Hỏi/khảo sát/đề xuất trả
+lời trực tiếp, chưa tạo records triển khai. Với việc code, đọc code/dữ liệu
+thật, phân biệt facts/yêu cầu/giả định; trình contract ngắn gồm outcome,
+scope, một ví dụ phải sửa, một ví dụ phải giữ và checks. Với tương tác, trace
+input → thao tác → dependency/chờ → kết quả, gồm save/reopen khi cần.
+Không tự chốt yêu cầu chưa xác nhận. Duyệt một lần cho đúng scope.
 
-Sau setup: hỏi/khảo sát độc lập trả lời trực tiếp; việc code nhỏ dùng
-contract ngắn, việc phức tạp mới phân tích sâu. Chờ tôi duyệt đúng contract,
-lưu/readback quyết định và recheck trước patch, sửa đúng scope, chạy test
-thực và bàn giao. Dùng work start/checkpoint/finish, resume --compact khi
-cần; tự xử lý JSON/IDs và tái sử dụng binding/revision vừa đọc trong chat.
-Finish đã lưu handoff thì không tạo checkpoint bàn giao lặp. Verification
-có binding của lần kiểm riêng; nguồn/contract đổi phải revalidate, không
-gắn PASS cũ sang nguồn mới. State là báo cáo chưa xác thực, không khôi phục
-quyền từ checkpoint hoặc tự chốt giả định sản phẩm. Từ yêu cầu tiếp theo
-tôi sẽ giao việc bằng ngôn ngữ bình thường.
+Luồng thường một batch/single Git root: sau USER duyệt dùng work begin lưu,
+readback/recheck quyết định trước patch; inspect và dừng trên BLOCKED/nonzero.
+Helper tự mang IDs/revisions/hashes; dùng receipt mới nhất. Sửa đúng scope,
+giữ thay đổi có sẵn; work verify chạy checks đã khai báo và bind tested
+sources; work handoff lưu kết quả/bàn giao. Đọc docs/SLIM.md hoặc COMMAND
+--help khi thiếu options, không đọc source helper để đoán payload. Không
+ghi approval/hành vi khác contract đã trình.
 
-Lượt chỉ khảo sát/đề xuất/contract trả lời trong chat, chưa gọi helper trừ
-khi cần tracking bền vững/handoff. Sau duyệt triển khai mới serialize đúng
-contract đã trình, lưu/readback/recheck quyết định trước patch đầu tiên.
-Không thêm policy hoặc hành vi chưa được trình vào lúc ghi metadata.
+Fail/missing/timeout hoặc source đổi không được thành PASS. Review symptom
+và preservation; không gắn hash mới cho test cũ. Phân biệt code checked,
+actual workflow exercised và app ready; unit/mock không chứng minh UI thật.
+Handoff thành công không tạo checkpoint/report trùng; không lặp full tests
+hoặc log không đổi khi chưa có lý do mới.
 
-Trước thiết kế tương tác, kiểm một hành trình cụ thể và các giả định gây
-thêm thao tác/chờ; ghi usage_scenario. Kiểm thao tác thực riêng với unit/mock.
-Việc nhỏ rõ không thêm worksheet. Contract/approval giữ nguyên khi refine
-file trong implementation_policy đã trình duyệt; dùng checkpoint với
-implementation_plan, không bắt tôi duyệt lại chỉ vì metadata trong giới hạn.
-Giữ các giới hạn file/rủi ro tôi chỉ rõ. Danh sách file agent dự kiến là kế
-hoạch kỹ thuật; với task theo component, trình cả regression/support liên
-quan và policy hẹp ngay từ đầu. Thiếu policy hoặc state cũ vẫn là EXACT.
-Vượt giới hạn hoặc đổi hành vi/rủi ro cần contract mới. Không chuyển approval
-hoặc PASS sang binding mới; chỉ báo mức kiểm chứng thực đạt.
+Nhiều repo, refinement/batch tiếp, migration, security/permissions, billing,
+delegation hoặc handoff dài dùng API nâng cao trong docs/USAGE.md; khai báo
+đủ roots/write_paths/read_paths, giữ binding/CAS. Số file không tự quyết
+định rủi ro. Resume bằng topic --compact; chỉ đọc thêm khi thiếu fact hay có
+ambiguity thật. Không đoán task, khôi phục quyền từ state hoặc chuyển
+approval/PASS sang binding mới. Scope đổi cần duyệt lại.
 
-Với nhiều repo, khai báo từng Git root và write_paths/read_paths trong
-contract; work sources chụp footprint trước test, finish dùng tested_sources_file.
-Không dùng hash repo chính đại diện repo khác hoặc nâng bằng chứng legacy
-thiếu coverage thành CURRENT. Ưu tiên CLI trực tiếp, wrapper phải giữ mã lỗi
-bằng checked client; nonzero/BLOCKED phải dừng trước patch. Output thường gọn;
-chỉ đọc chi tiết khi thiếu fact thật, không chạy lại mutation để xem verbose.
-Product testtree/fixtures đặt ngoài inventory kit-only. Chờ process theo
-khoảng hợp lý, không đọc log không đổi hoặc lặp test khi không có lý do mới.
+Kit là advisory, không cấp OS permission hoặc xác thực identity; giữ giới
+hạn provider. Không tự cài dependency, đổi model/settings, thêm agents hoặc
+stage/commit/push/deploy. Xong setup, báo ngắn kết quả và chờ việc tiếp theo.
 ```

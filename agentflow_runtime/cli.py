@@ -1,4 +1,4 @@
-"""Agent Workflow Kit v1.1.0-rc4 local process CLI (V3 engine).
+"""Agent Workflow Kit slim candidate local process CLI (V3 engine).
 
 Safe by default: read-only exploration and external-state drafts; no product-code
 mutation, native approvals, execution grants, model calls or CI/CD actions.
@@ -36,11 +36,11 @@ from agentflow_si.operations import mutation_preflight, git_scope_preview, class
 from agentflow_si.workflow import (evidence_impact, evidence_graph_draft, intent_preview,
     profile_exception_proposal, verification_plan, verification_resource_conflicts)
 
-VERSION='1.1.0-rc4'
+VERSION='1.1.0-slim-candidate.2'
 
 
 def make_parser():
-    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.1.0-rc4 - work start/checkpoint/finish; not OS enforcement')
+    p=argparse.ArgumentParser(description='Agent Workflow Kit slim candidate - begin/verify/handoff; advanced APIs retained; not OS enforcement')
     p.add_argument('--repo',required=True,help='Existing project folder')
     p.add_argument('--state-home',help='External local state root')
     sub=p.add_subparsers(dest='action',required=True)
@@ -50,6 +50,21 @@ def make_parser():
     resume=sub.add_parser('resume');resume.add_argument('query',nargs='?',default='');resume.add_argument('--compact',action='store_true')
     work=sub.add_parser('work',help='Everyday start/checkpoint/finish; legacy commands remain available')
     worksub=work.add_subparsers(dest='work_action',required=True)
+    begin=worksub.add_parser('begin',help='After actual USER approval: save/read back decision and return a receipt; no patch')
+    begin.add_argument('topic');begin.add_argument('--data',help='Approved contract, approval_source and checks JSON, or - for stdin')
+    begin.add_argument('--source-ref',help='Actual USER approval reference in this chat')
+    begin.add_argument('--objective');begin.add_argument('--path',action='append',default=[])
+    begin.add_argument('--accept',action='append',default=[]);begin.add_argument('--preserve',action='append',default=[])
+    begin.add_argument('--test',help='One existing project command, parsed without a shell; environment variables in arguments are expanded')
+    begin.add_argument('--covers',help='Explicit reported check mapping, e.g. A1,P1; not inferred semantic coverage')
+    begin.add_argument('--type',choices=['BUG','FEATURE','MAINTENANCE'],default='BUG')
+    begin.add_argument('--scenario',help='Concrete interaction path, if relevant; command-only checks leave actual UI unverified')
+    verify=worksub.add_parser('verify',help='Run predeclared checks and bind logs to tested sources')
+    verify.add_argument('topic',help='Latest receipt path');verify.add_argument('--timeout',type=int,default=300)
+    handoff=worksub.add_parser('handoff',help='Save actual checks and handoff without manual metadata')
+    handoff.add_argument('topic',help='Verification receipt path');handoff.add_argument('--summary',required=True)
+    handoff.add_argument('--remaining',action='append',default=[])
+    for cmd in (begin,verify,handoff):cmd.add_argument('--verbose',action='store_true')
     for name in ('start','checkpoint','finish','history','sources'):
         examples={
           'start':'JSON: analysis_level QUICK|STANDARD|DEEP, work_type BUG|FEATURE|MAINTENANCE, objective, scope.functional, preserve, acceptance, verification_strategy. STANDARD needs scenario/impact facts and gaps(list); usage_scenario can supply the missing scenarios/declared-scope inventory without duplicate input. Explicit invalid fields are not overwritten. DEEP also needs risk_summary(string), evidence_sources(list), solution_challenge(object). Use contract-template --level DEEP for field shapes. Sibling repos: repositories=[{key,root:absolute Git root,write_paths:[explicit relative files],read_paths:[]}]. Direct CLI or stdin; do not read implementation source to discover payloads.',
@@ -170,6 +185,27 @@ def process(args):
         if args.artifact_action=='inventory':return {'inventory':manager.inventory(),'read_only':True}
         return manager.check(data.get('product_paths'))
     if args.action=='work':
+        if args.work_action in ('begin','verify','handoff'):
+            from . import slim
+            if args.work_action=='verify':return slim.verify(repo,home,args.topic,args.timeout)
+            if args.work_action=='handoff':return slim.handoff(repo,home,args.topic,args.summary,args.remaining)
+            if args.data:
+                if any((args.source_ref,args.objective,args.path,args.accept,args.preserve,args.test,args.covers,args.scenario)):
+                    raise StoreError('Choose --data or short contract flags, not both')
+                data=_work_data(args.data,repo)
+            else:
+                import shlex
+                if not args.test:raise StoreError('Begin needs an existing project --test command')
+                contract={'analysis_level':'STANDARD' if args.scenario else 'QUICK','work_type':args.type,
+                    'objective':args.objective,'scope':{'functional':args.path},'acceptance':args.accept,
+                    'preserve':args.preserve,'verification_strategy':[args.test],
+                    'repositories':[{'key':'project','root':str(Path(repo).resolve()),'write_paths':args.path,'read_paths':[]}],
+                    'gaps':[]}
+                if args.scenario:contract['usage_scenario']=args.scenario
+                data={'contract':contract,'approval_source':args.source_ref,
+                      'checks':[{'argv':shlex.split(args.test),'kind':'REPRODUCTION' if args.type=='BUG' else 'REGRESSION',
+                                 'covers':args.covers.split(',') if args.covers else []}]}
+            return slim.begin(repo,home,args.topic,data)
         from .work import start,checkpoint,finish,history,recheck,source_snapshot
         if args.work_action=='history':return history(repo,home,args.topic,args.limit,args.before)
         if args.work_action=='sources':
@@ -230,7 +266,7 @@ def process(args):
     if args.action=='si-test-footprints':return verification_resource_conflicts(_read_json(args.json_file))
     if args.action=='si-release-doctor':
         return release_readiness(repo,home,observations=_read_json(args.observations_json) if args.observations_json else None)
-    if args.action=='version':return {'version':VERSION,'working_revision':'V1.1.0-RC1-LOCAL-CANDIDATE',
+    if args.action=='version':return {'version':VERSION,'working_revision':'SLIM-ISOLATED-CANDIDATE-1',
                                      'release_class':'PRACTICAL_ADVISORY_RELEASE_NOT_SECURITY_CERTIFIED'}
     if args.action=='repo-status':return git_snapshot(repo)
     if args.action=='resume':

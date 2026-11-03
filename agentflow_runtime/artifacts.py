@@ -10,7 +10,8 @@ from .records import WorkflowRecords
 from .practical import _git
 from .status import HEX64
 
-MARKERS = (b'AGENTFLOW_V3_GUIDANCE_ONLY', b'agentflow.checkpoint.v1')
+MARKERS = (b'AGENTFLOW_V3_GUIDANCE_ONLY', b'agentflow.checkpoint.v1',
+           b'agentflow.slim.receipt.v1', b'agentflow.slim.baseline.v1')
 
 
 class Artifacts:

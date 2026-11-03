@@ -1,14 +1,16 @@
 # Agent Workflow Kit
 
-Workflow cho coding agent trong dự án hiện tại: **hiểu yêu cầu → contract → duyệt → checkpoint → sửa → kiểm chứng → bàn giao**.
+Workflow cho coding agent trong dự án hiện tại: **hiểu việc → contract ngắn → duyệt → sửa và kiểm chứng → bàn giao**.
 
-[MIT License](LICENSE) · Python 3.11+ · Git · **v1.1.0-rc4 — bản thử để kiểm thử thực tế**
+[MIT License](LICENSE) · Python 3.11+ · Git · **v1.1.0-slim-candidate.2 — bản thử**
 
 ## Bắt đầu
 
-Mở agent tại dự án rồi gửi prompt trong [INIT_PROMPT.md](INIT_PROMPT.md). Agent tự clone tag `v1.1.0-rc4` ra ngoài dự án, kiểm đúng bản và setup tại thư mục đang làm việc ban đầu. Nếu nâng cấp, giữ nguyên state/history và mọi thay đổi đang có.
+Mở agent tại thư mục dự án rồi dán prompt trong [INIT_PROMPT.md](INIT_PROMPT.md). Agent clone đúng phiên bản ra ngoài dự án, kiểm manifest, preview/setup và đọc lại AGENTS.md/CLAUDE.md để áp dụng workflow. **Thư mục đang làm việc khi nhận prompt là đích mặc định.** Setup giữ luật riêng, backup, state/history và các thay đổi đang có.
 
-Có thể [tải ZIP của tag](https://github.com/hieumai1905/agent-kit/archive/refs/tags/v1.1.0-rc4.zip), giải nén ngoài dự án rồi làm theo [BOOTSTRAP.md](BOOTSTRAP.md).
+Prompt chỉ áp dụng khi người dùng chủ động gửi vào chat cần setup. Việc phát hành không tự nâng cấp hoặc điều khiển các chat đang chạy. Cách nâng cấp tại điểm dừng an toàn: [BOOTSTRAP.md](BOOTSTRAP.md).
+
+Có thể [tải ZIP của tag](https://github.com/hieumai1905/agent-kit/archive/refs/tags/v1.1.0-slim-candidate.2.zip) rồi setup thủ công:
 
 ```sh
 python3 -B /ABS/KIT/tools/verify_release.py
@@ -16,58 +18,45 @@ python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT setup --mode advisory
 python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT setup --mode advisory --upgrade --apply
 ```
 
-Setup preview trước apply, làm mới AGENTS.md/CLAUDE.md, giữ nội dung riêng, backup ngoài project, lập inventory và dùng Git local exclude hẹp. File tracked/mixed, managed block tùy biến, override chưa giải quyết hoặc artifact trong index phải BLOCKED. Agent đọc lại chỉ dẫn đang hiệu lực và kiểm kết quả trước SETUP_READY. Setup local không chứng minh provider đã nạp hướng dẫn.
+Preview trước apply. Tracked/mixed guidance, block tùy biến, artifact trong INDEX hoặc override chưa giải quyết phải BLOCKED; không tự untrack/unstage, ignore rộng hoặc ghi đè luật riêng. SETUP_LOCAL_READY chưa chứng minh agent đã áp dụng hướng dẫn trong session.
 
 ## Giao việc bình thường
 
 > Sửa lỗi [triệu chứng], kết quả mong muốn [kết quả]. Giữ nguyên [ràng buộc]. Không commit/push/deploy.
 
-Agent khảo sát và trình contract ngắn cho việc nhỏ; việc phức tạp mới cần phân tích sâu. Khi đồng ý, trả lời **Duyệt contract này**. Agent ghi quyết định trước patch, kiểm điều kiện, sửa, chạy kiểm tra sát phạm vi và bàn giao bằng chứng.
+Agent đọc phần liên quan và trình contract ngắn: outcome, scope, ví dụ phải sửa, ví dụ phải giữ và checks. Bạn duyệt một lần cho đúng phạm vi. Hỏi/khảo sát/đề xuất trả lời trực tiếp, chưa tạo metadata triển khai. Không tự biến giả định chưa xác nhận thành yêu cầu.
 
-Hỏi/đọc/nghiên cứu độc lập được trả lời trực tiếp. Agent phân biệt yêu cầu đã xác nhận, facts từ code và phương án đề xuất, không hỏi lại điều đã rõ hoặc tự chốt chính sách sản phẩm.
+Luồng thường dành cho một batch trong một Git root:
 
-Lượt chỉ khảo sát/đề xuất/contract chưa triển khai giữ trong chat, không mặc định chạy helper. Sau khi duyệt triển khai, agent lưu đúng contract và quyết định, readback/recheck trước patch. Tracking bền vững hoặc handoff của việc đang làm vẫn dùng state.
-
-## Thao tác nội bộ của agent
-
-| Thao tác | Vai trò |
+| Mốc | Helper thực hiện |
 |---|---|
-| `work start` | Tìm việc đang có / tạo contract và checkpoint chờ quyết định |
-| `work checkpoint` | Lưu milestone với CAS/binding; quyết định tự readback/recheck, `--check` dùng sau gián đoạn |
-| `work finish` | Đánh giá báo cáo theo acceptance/preserve, kiểm artifact và lưu bàn giao |
-| `work sources` | Chụp toàn bộ footprint nhiều repo trước test, không thực thi test |
-| `resume TOPIC --compact` | Đọc tóm tắt có giới hạn; đối chiếu freshness, không khôi phục quyền |
-| `work history` | Tra lịch sử theo trang, không xóa bằng chứng cũ |
-| `artifacts check` | Kiểm index blobs, artifact roots và file chưa tracked |
+| `work begin` | Lưu quyết định USER đã duyệt, đọc lại và kiểm trước patch; trả receipt |
+| `work verify` | Chạy checks đã khai báo, lưu log/exit và binding tested sources |
+| `work handoff` | Kiểm scope/freshness/artifacts/INDEX và lưu kết quả cùng bàn giao |
 
-Người dùng không nhập IDs/JSON. Payload mẫu nằm trong [USAGE.md](docs/USAGE.md). CLI cũ và state v1.0.2 được giữ tương thích. H/D, SI, model-advice là đường nâng cao riêng; không tự bật.
+Helper mang IDs/revisions/hashes; người dùng không nhập JSON/IDs. Agent dùng receipt mới nhất. Xem [SLIM.md](docs/SLIM.md) để biết flags và ví dụ. Nhiều repo, refinement/batch tiếp, migration, security/permissions, billing, delegation hoặc handoff dài dùng API nâng cao trong [USAGE.md](docs/USAGE.md); không bắt task nhỏ đọc toàn bộ quy trình.
 
-Rc4 sửa finish với payload thực tế, bổ sung cách kiểm giả định và hành trình sử dụng trước khi chọn thiết kế. Thay đổi tương tác được nghiệm thu riêng với unit/mock; thiếu kiểm tra thao tác thực phải báo thiếu. File triển khai được refine trong policy đã duyệt, giữ nguyên contract/approval; exact file list vẫn là mặc định. Các cơ chế nguồn nhiều repo, CAS, local-only và bằng chứng chưa xác thực được giữ. Chưa khẳng định cải thiện quyết định/usage tổng quát; kết quả fixture có giới hạn cần được đối chiếu với công việc thật.
+Không hỏi lại quyền đã duyệt trong scope. Không chuyển approval/PASS cũ sang contract/source mới. Unit/mock không chứng minh UI thật; bàn giao phải nói rõ mức kiểm chứng và phần còn thiếu. Handoff thành công không tạo báo cáo/checkpoint trùng.
 
-## Kiểm chứng và giới hạn
+## File vận hành và giới hạn
 
-`VERIFIED_REPORTED` nghĩa là báo cáo agent đủ các mục yêu cầu, không phải trusted verification. Thiếu reproduction, execution hoặc coverage làm giảm mức kết luận. Resume giữ verification từ bản ghi lịch sử gốc, có freshness contract/source riêng; checkpoint tiến độ không làm mới bằng chứng cũ. Helper không chạy command trong JSON, không tự approve/complete hoặc phát hành. Quyền và quyết định thực vẫn do user/provider.
+Clone/runtime/state/receipt/log/report của kit nằm ngoài product tree. Chỉ hai guidance kit-only chưa tracked được đặt tại root bằng Git local exclude hẹp. Product regression tests vẫn thuộc code sản phẩm. Checker đọc INDEX blobs và marker/fingerprint/state; receipt/baseline vẫn được nhận diện khi đổi định dạng JSON, log kit có marker riêng. Không tự sửa product .gitignore/hooks/global config hoặc bỏ tracked files để lách kiểm tra.
 
-Artifact vận hành kit ở ngoài product tree; chỉ guidance kit-only chưa tracked được giữ ở root bằng local exclude. Checker đọc INDEX, phát hiện marker/fingerprint/SQLite state kể cả đổi tên; đọc thêm các runtime roots đã đăng ký. Nội dung trùng fingerprint cần đối chiếu nguồn gốc; có thể ghi báo cáo sản phẩm gắn path/hash qua artifacts classify-product. Path kit đã biết/marker/state vẫn chặn. File chưa biết nguồn hoặc bản sao đã biến đổi cần agent review. Không ignore rộng docs/tests/contracts; không tự untrack/unstage, sửa .gitignore/hook/global config. Không có cơ chế chặn tuyệt đối commit ngoài workflow. Kiểm tra bị giới hạn hoặc không đọc được phải báo BLOCKED.
+Đây là **ADVISORY**, không phải OS sandbox, xác thực người gửi hay khóa cưỡng chế mọi commit. State/receipt không cấp quyền. Commands chạy theo quyền hiện có; tests là executable code. Baseline chỉ bao phủ Git-visible files và các quan sát có giới hạn. Mapping checks→acceptance/preserve vẫn cần review nghĩa. Không tự cài dependencies, đổi model/settings, thêm agents hoặc stage/commit/push/deploy.
 
-Một writer tuần tự; snapshot/CAS không là khóa OS hay sandbox. Codex local là môi trường thử; không khẳng định mọi provider/model đã được nghiệm thu. Không thêm API/MCP/dependencies/model calls vào runtime.
+`VERIFIED_REPORTED` là mức đủ của báo cáo, không phải trusted verification. CLI nâng cao/schema state/history được giữ; gỡ guidance không xóa lịch sử. Một writer, không tự tạo/gia hạn delegation. Không thêm model/API calls vào runtime.
 
-## Kiểm tra và phục hồi
+## Mức kiểm thử
+
+Bản rút gọn qua sàng lọc hai ca lỗi lịch sử: 21/21 và 9/9 tiêu chí code cùng regression liên quan. Ở một cặp hoàn tất cùng mức core quality, helper giảm 11→3 lần gọi; thời gian giảm khoảng 15%, output giảm khoảng 15%, nhưng uncached input tăng khoảng 17%. Cặp còn lại có control timeout nên không dùng tính phần trăm tiết kiệm.
+
+**Chưa xác nhận giảm tổng usage/chi phí, chưa chạy đủ vòng đối chứng lặp lại và chưa nghiệm thu UI thật.** Đây là bản thử, không phải kết luận agent quyết định tốt hơn ở mọi dự án. Trace/snapshot dự án và dữ liệu kiểm thử riêng không thuộc gói người dùng.
 
 ```sh
 python3 -B /ABS/KIT/tools/verify_release.py
 python3 -B /ABS/KIT/tools/practical_smoke.py
 ```
 
-Smoke chạy trên fixture tạm; không gọi model, không sửa dự án thật và không thay thế benchmark agent. Test phát triển, trace và báo cáo nghiệm thu nằm ngoài gói người dùng. Cách nâng cấp/gỡ/rollback: [USAGE.md](docs/USAGE.md). Gỡ guidance không xóa lịch sử state; rollback từ chối đè file người dùng đã sửa sau cài.
+Smoke dùng fixture tạm, không gọi model hay sửa dự án thật. [BOOTSTRAP.md](BOOTSTRAP.md) và [USAGE.md](docs/USAGE.md) hướng dẫn nâng cấp/gỡ/rollback. Debug/continuity chỉ đọc khi cần: [VERIFICATION.md](docs/VERIFICATION.md), [CONTINUITY.md](docs/CONTINUITY.md).
 
-## Tài liệu
-
-- [Setup và READY](BOOTSTRAP.md)
-- [Workflow](docs/AGENT_WORKFLOW.md)
-- [Cách dùng và payload](docs/USAGE.md)
-- [Debug và verification](docs/VERIFICATION.md)
-- [Continuity](docs/CONTINUITY.md)
-- [Delegated protocol tùy chọn](docs/DELEGATED_ADVISORY.md)
-
-Runtime và hướng dẫn thuộc [MIT License](LICENSE). Copyright © 2026 hieumai1905.
+Copyright © 2026 hieumai1905. [MIT License](LICENSE).

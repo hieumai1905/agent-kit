@@ -1,6 +1,8 @@
-# Dùng kit 1.1.0-rc4
+# API nâng cao — slim candidate.2
 
-Đây là bản thử rc4 để kiểm thử thực tế. Người dùng giao việc bình thường; agent đọc workflow đã setup. Giữ một writer, duyệt trực tiếp trong chat. Không tự commit/push/deploy hoặc đổi model/quyền/dependencies.
+Trong ứng viên slim, luồng thường dùng [SLIM.md](SLIM.md). Phần dưới giữ API nâng cao và tương thích state/history cũ; không cần đọc hết cho một task nhỏ đã rõ.
+
+Đây là API nâng cao giữ từ rc4; luồng thường dùng SLIM.md. Bản slim vẫn là prerelease, chưa xác nhận hiệu quả tổng quát. Người dùng giao việc bình thường; agent đọc workflow đã setup. Giữ một writer, duyệt trực tiếp trong chat. Không tự commit/push/deploy hoặc đổi model/quyền/dependencies.
 
 ## Setup
 
