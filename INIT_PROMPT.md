@@ -2,10 +2,10 @@
 
 Mở agent tại thư mục dự án rồi gửi nguyên khối dưới đây. Agent tự clone và setup; sau đó bạn giao việc bình thường. **Thư mục làm việc hiện tại lúc nhận prompt là đích mặc định**, được chốt trước khi clone hoặc đổi thư mục.
 
-Bản hiện hành: **v1.1.0-rc2**, bản thử đã công bố để kiểm thử thực tế. Runtime được pin theo tag; các tag cũ giữ nguyên. Prompt hiện hành được duy trì trên `main`.
+Bản hiện hành: **v1.1.0-rc3**, bản thử để kiểm thử thực tế. Runtime pin theo tag; các tag cũ giữ nguyên. Prompt hiện hành được duy trì trên `main`.
 
 ```text
-Thiết lập và áp dụng Agent Workflow Kit v1.1.0-rc2 cho thư mục làm việc
+Thiết lập và áp dụng Agent Workflow Kit v1.1.0-rc3 cho thư mục làm việc
 hiện tại của agent, để sau đó tôi giao việc bình thường.
 
 Trước khi clone hoặc đổi thư mục, chạy pwd -P và ghi đường dẫn tuyệt đối
@@ -14,14 +14,13 @@ Không suy đích từ tên chat, repo từng làm hoặc thư mục chứa kit.
 canonical Git root; nếu root ở cha, có nhiều repo hoặc chưa có Git, làm rõ
 đích trước khi apply. Không tự nâng root, chọn repo con, git init hoặc cài hàng loạt.
 
-Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.1.0-rc2.
-Commit bắt buộc phải khớp: 93160d9d7d94c73e4a795344184f2f6b877616eb.
-Đối chiếu HEAD và commit của tag; ghi lại SHA thực đã dùng.
-Clone bằng git clone --branch v1.1.0-rc2 --depth 1 vào
-~/.local/share/agent-workflow-kit/v1.1.0-rc2 hoặc vị trí bền vững ngoài đích.
+Repo kit: https://github.com/hieumai1905/agent-kit.git — pin tag v1.1.0-rc3.
+Resolve commit thật của tag từ remote, đối chiếu HEAD và ghi lại SHA đã dùng.
+Clone bằng git clone --branch v1.1.0-rc3 --depth 1 vào
+~/.local/share/agent-workflow-kit/v1.1.0-rc3 hoặc vị trí bền vững ngoài đích.
 Nếu đã có clone, kiểm origin, tag/commit và thay đổi local trước khi dùng;
 không reset/pull đè hoặc tự chuyển main/latest khi tag không dùng được.
-Đọc release/RELEASE.json, kiểm version 1.1.0-rc2 và chạy tools/verify_release.py.
+Đọc release/RELEASE.json, kiểm version 1.1.0-rc3 và chạy tools/verify_release.py.
 Thiếu Git/Python 3.11+/quyền/network thì báo điều kiện thiếu, không tự cài thêm.
 
 Tôi chọn ADVISORY, duyệt contract trực tiếp trong chat, một writer. Tôi cho
@@ -64,4 +63,13 @@ có binding của lần kiểm riêng; nguồn/contract đổi phải revalidate
 gắn PASS cũ sang nguồn mới. State là báo cáo chưa xác thực, không khôi phục
 quyền từ checkpoint hoặc tự chốt giả định sản phẩm. Từ yêu cầu tiếp theo
 tôi sẽ giao việc bằng ngôn ngữ bình thường.
+
+Với nhiều repo, khai báo từng Git root và write_paths/read_paths trong
+contract; work sources chụp footprint trước test, finish dùng tested_sources_file.
+Không dùng hash repo chính đại diện repo khác hoặc nâng bằng chứng legacy
+thiếu coverage thành CURRENT. Ưu tiên CLI trực tiếp, wrapper phải giữ mã lỗi
+bằng checked client; nonzero/BLOCKED phải dừng trước patch. Output thường gọn;
+chỉ đọc chi tiết khi thiếu fact thật, không chạy lại mutation để xem verbose.
+Product testtree/fixtures đặt ngoài inventory kit-only. Chờ process theo
+khoảng hợp lý, không đọc log không đổi hoặc lặp test khi không có lý do mới.
 ```

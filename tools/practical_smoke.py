@@ -100,7 +100,7 @@ def demo():
         datafile=base/'work.json';datafile.write_text(json.dumps(small))
         started=run('work_start',['work','start','Scratch maintenance','--data',str(datafile)])
         run('unapproved_guard_blocks',['work','checkpoint','Scratch maintenance','--check'],expect=2)
-        decision={'milestone':'CONTRACT_DECISION','expected_revision':started['checkpoint']['revision'],
+        decision={'milestone':'CONTRACT_DECISION','expected_revision':started['checkpoint_revision'],
                   'contract_sha256':started['binding']['contract_sha256'],'phase':'IMPLEMENTING',
                   'summary':'Synthetic smoke decision only; no real human attestation',
                   'completed':['Inspected scratch fixture'],'remaining':['Run scratch command'],

@@ -11,6 +11,62 @@ from .continuity import checkpoint_template, save_checkpoint
 from .status import observe_source_hashes
 from .rig import analyze_readiness
 from .verification import assess
+from . import sources
+
+
+def _artifact_checks(repo, home, contract):
+    from .artifacts import Artifacts
+    primary = Artifacts(repo, home); inv = primary.inventory()
+    checks = {'anchor': primary.check()}
+    if contract.get('repositories'):
+        for entry in sources.registry(contract, repo):
+            if Path(entry['root']) == Path(repo).resolve(): continue
+            manager = Artifacts(entry['root'], home)
+            own = manager.inventory()
+            # Relative product-origin reports belong only to their own repo.
+            shared = {**(inv or {}), 'product_reports': {}}
+            if own:
+                shared['items'] = (inv or {}).get('items', []) + own.get('items', [])
+                shared['fingerprints'] = list(set((inv or {}).get('fingerprints', [])) | set(own.get('fingerprints', [])))
+                shared['product_reports'] = own.get('product_reports', {})
+            checks[entry['key']] = manager.check(inventory=shared) if inv else {'status':'BLOCKED','reasons':['No primary inventory']}
+    if len(checks) == 1: return checks['anchor']
+    return {'status':'CLEAR' if all(c['status']=='CLEAR' for c in checks.values()) else 'BLOCKED',
+            'repositories':checks,'reasons':[key+': '+reason for key,c in checks.items() for reason in c.get('reasons',[])],
+            'read_only':True,'write_authorized':False,'enforced_commit_gate':False}
+
+
+def _repo_git(repo, contract):
+    from .practical import git_snapshot
+    cache = {}
+    def observe(root):
+        root = str(Path(root).resolve())
+        if root not in cache: cache[root] = git_snapshot(root)
+        return cache[root]
+    return {'anchor':observe(repo), 'sources':{entry['key']:observe(entry['root']) for entry in sources.registry(contract, repo)}}
+
+
+def source_snapshot(repo, home, topic, output=None):
+    """Capture a test-time footprint without executing tests or changing DB."""
+    rec=WorkflowRecords(repo,home,initialize=False);tid=resolve(rec,topic)
+    contract=rec.core.contract_revision(tid)
+    manifest=sources.capture(contract['content'],repo)
+    if output:
+        path=Path(output).expanduser()
+        if not path.is_absolute() or path.is_symlink(): raise StoreError('sources --output must be an absolute external file')
+        path=path.resolve()
+        roots=[Path(repo).resolve()]+[Path(r['root']) for r in sources.registry(contract['content'],repo)]
+        if any(path.is_relative_to(root) for root in roots): raise StoreError('Source snapshots must stay outside every product root')
+        # The normal destination is already registered by setup. Avoid arbitrary
+        # external writes or mutable reuse of a previous test-time snapshot.
+        artifact_dir=rec.store.state_dir/'artifacts'
+        if not path.is_relative_to(artifact_dir): raise StoreError('Use the returned artifact_directory for --output')
+        path.parent.mkdir(parents=True,exist_ok=True)
+        with path.open('x') as handle: json.dump(manifest,handle,ensure_ascii=False,sort_keys=True)
+        return {'source_snapshot_file':str(path),'scope_sha256':manifest['scope_sha256'],
+                'repositories':len(manifest['repositories']),'files':sum(len(r['files']) for r in manifest['repositories']),
+                'contract_sha256':contract['sha256'],'read_only_product_and_db':True,'write_authorized':False}
+    return {'source_manifest':manifest,'contract_sha256':contract['sha256'],'read_only':True,'write_authorized':False}
 
 
 def resolve(records, topic):
@@ -35,6 +91,8 @@ def hashes_for(repo, paths):
         p = root / name
         if p.is_symlink() or not p.resolve().is_relative_to(root) or '.git' in p.parts:
             raise StoreError('Source paths must stay inside product tree without symlinks')
+        if p.is_dir():
+            raise StoreError('source_paths: directory '+name+' is not a file; list the explicit task files (or declare repositories.write_paths)')
         if not p.is_file() or p.stat().st_size > 8 * 1024 * 1024:
             raise StoreError('Source file missing/too large: ' + name)
         result[name] = hashlib.sha256(p.read_bytes()).hexdigest()
@@ -48,11 +106,16 @@ def start(repo, home, title, data, kind='change'):
         return {'action': 'ANSWER_OR_INVESTIGATE_READ_ONLY', 'stored': False, 'write_authorized': False}
     contract = data.get('contract', data)
     if not isinstance(contract,dict):raise StoreError('contract must be an object')
+    if contract.get('repositories'):
+        sources.registry(contract, repo)
+    elif sources.external_scope(contract, repo):
+        raise StoreError('repositories: multi-repo scope needs explicit Git roots and write_paths; a primary-repo anchor cannot cover sibling source')
     from agentflow_core.db import canonical_json
     if len(canonical_json(contract).encode('utf-8'))>256*1024:raise StoreError('Contract exceeds 256 KiB; reduce to relevant facts before saving')
     ready = analyze_readiness(contract)
     if ready['status'] != 'READY_FOR_HUMAN_REVIEW':
         raise StoreError('Contract not ready: ' + '; '.join(ready['blockers']))
+    contract={**contract,'analysis_level':ready['effective_level']}
     for key in ('preserve', 'verification_strategy'):
         if not isinstance(contract.get(key), list) or not contract[key] or any(not isinstance(x,str) or not x.strip() for x in contract[key]):
             raise StoreError(key + ' must explicitly describe constraints/checks (use an explicit no-extra-constraints entry if appropriate)')
@@ -63,7 +126,7 @@ def start(repo, home, title, data, kind='change'):
         raise StoreError('knowledge separates confirmed, observed and proposed lists')
     from .artifacts import Artifacts
     manager=Artifacts(repo,home)
-    artifact_check=manager.check() if manager.inventory() is not None else {'status':'NOT_CONFIGURED','next_action':'Complete setup before effects'}
+    artifact_check=_artifact_checks(repo,home,contract) if manager.inventory() is not None else {'status':'NOT_CONFIGURED','next_action':'Complete setup before effects'}
     if artifact_check['status']=='BLOCKED':raise StoreError('Contract handoff blocked by artifacts: '+'; '.join(artifact_check['reasons']))
     rec = WorkflowRecords(repo, home)
     matches = TaskNavigator(rec).search(title)
@@ -77,7 +140,7 @@ def start(repo, home, title, data, kind='change'):
     body.update(summary='Contract prepared; awaiting the user decision', completed=['Read relevant context; drafted contract'],
                 remaining=['Obtain explicit decision on this contract'], next_action='Present contract and wait for the user decision')
     checkpoint = save_checkpoint(rec, tid, body)
-    return {'action': 'PRESENT_CONTRACT', 'task_id': tid, 'contract': contract,
+    return {'action': 'PRESENT_CONTRACT', 'task_id': tid, 'contract': contract, 'routing':ready,
             'binding': {'contract_revision': created['contract_revision'], 'contract_sha256': created['contract_hash']},
             'checkpoint': checkpoint, 'artifact_check':artifact_check,
             'artifact_directory':str(rec.store.state_dir/'artifacts'),
@@ -100,6 +163,8 @@ def checkpoint(repo, home, topic, data):
     milestone = data.get('milestone', 'HANDOFF')
     template = checkpoint_template(rec, tid, milestone)
     body = template['checkpoint']
+    contract = rec.core.contract_revision(tid)['content']
+    multi = bool(contract.get('repositories'))
     if milestone=='CONTRACT_DECISION':
         body.update(phase='PREFLIGHT',summary='Current-chat contract decision reported; no patch by this helper',
                     completed=['Recorded reported contract decision'],remaining=['Implementation/verification still require current authorized scope'],
@@ -122,32 +187,46 @@ def checkpoint(repo, home, topic, data):
             raise StoreError('Direct decision requires kind DIRECT_HUMAN, decision APPROVED/REJECTED and an actual current-chat source reference')
         decision = {**decision, 'contract_sha256': body['contract_sha256'], 'contract_revision': body['contract_revision']}
         body['advisory_decision'] = decision
-        body['source_hashes'] = hashes_for(repo, data.get('source_paths', []))
+        body['source_hashes'] = hashes_for(repo, data.get('source_paths', [])) if not multi else {}
         new_paths=data.get('new_paths',[])
         from .continuity import _paths
         if not _paths(new_paths) or any((Path(repo)/p).exists() or (Path(repo)/p).is_symlink() for p in new_paths):
             raise StoreError('new_paths must be safe relative paths that are still absent')
         body['new_paths']=new_paths
-        if not body['source_hashes'] and not new_paths:
+        if not multi and not body['source_hashes'] and not new_paths:
             raise StoreError('Decision checkpoint needs source_paths to observe or explicit absent new_paths')
         if not body['source_hashes']:
             del body['source_hashes']
         from .practical import git_snapshot
         body['prewrite_git'] = git_snapshot(repo)
-    if milestone == 'IMPLEMENTATION_VERIFICATION':
+    if milestone == 'IMPLEMENTATION_VERIFICATION' and not multi:
         body['source_hashes'] = hashes_for(repo, data.get('source_paths', body['changed_paths']))
-    if milestone!='CONTRACT_DECISION' and 'source_paths' in data:
+    if milestone!='CONTRACT_DECISION' and 'source_paths' in data and not multi:
         # The caller must first reconcile its intentional in-scope changes.
         # Refresh observations, not the carried decision or contract binding.
         body['source_hashes']=hashes_for(repo,data['source_paths'])
         from .practical import git_snapshot
         body['prewrite_git']=git_snapshot(repo)
+    if multi:
+        if data.get('source_paths') or data.get('tested_source_hashes'):
+            raise StoreError('Use the complete per-repo source manifest, not flat primary-repo source_paths/hashes')
+        body.pop('source_hashes',None)
+        body.pop('new_paths',None)
+        body['source_manifest']=sources.capture(contract,repo)
+        body['prewrite_repositories']=_repo_git(repo,contract)
+        changed=data.get('changed_sources',{})
+        if not isinstance(changed,dict):raise StoreError('changed_sources: expected repo key -> relative files')
+        entries={r['key']:r for r in sources.registry(contract,repo)}
+        for key,names in changed.items():
+            if key not in entries or not set(sources.paths(names,'changed_sources.'+key)) <= set(entries[key]['write_paths']):
+                raise StoreError('changed_sources must stay in the declared per-repo write footprint')
+        body['changed_sources']=changed
     if 'verification_report' in body:
         report=body['verification_report']
         if (not isinstance(report,dict) or report.get('contract_sha256')!=body['contract_sha256']
                 or report.get('contract_revision')!=body['contract_revision']
-                or not report.get('tested_source_hashes')
-                or report['tested_source_hashes']!=body.get('source_hashes')):
+                or (report.get('tested_sources')!=body.get('source_manifest') if multi else
+                    not report.get('tested_source_hashes') or report['tested_source_hashes']!=body.get('source_hashes'))):
             raise ConflictError('Verification must retain its own tested-source/current-contract binding; rerun affected checks, do not rebind old results')
     saved = save_checkpoint(rec, tid, body, expected_revision=expected)
     readback = rec.latest('PROGRESS', task_id=tid)
@@ -187,14 +266,24 @@ def finish(repo, home, topic, data):
     if decision.get('decision')!='APPROVED' or decision.get('kind')!='DIRECT_HUMAN' or decision.get('contract_sha256')!=contract['sha256']:
         raise StoreError('Finish requires the explicitly reported decision checkpoint for this contract; do not infer approval from code/tests')
     result = assess(contract['content'], data)
+    multi=bool(contract['content'].get('repositories'))
     paths = data.get('source_paths', data.get('changed_paths', []))
-    actual = hashes_for(repo, paths)
-    if not actual or data.get('tested_source_hashes') != actual:
-        raise ConflictError('Provide tested_source_hashes captured at check time; current files must match them')
-    result.update(contract_sha256=contract['sha256'],contract_revision=contract['revision'],
-                  tested_source_hashes=dict(actual))
-    from .artifacts import Artifacts
-    artifact_check=Artifacts(repo,home).check()
+    if multi:
+        actual=sources.capture(contract['content'],repo)
+        if data.get('tested_sources')!=actual:
+            raise ConflictError('tested_sources must cover every declared repo/file at test time and still match; capture with work sources before checks')
+        result['tested_sources']=actual
+        result['source_coverage']='DECLARED_SCOPE_COMPLETE'
+    else:
+        actual = hashes_for(repo, paths)
+        coverage=sources.legacy_coverage(contract['content'],repo,actual,data.get('changed_paths'))
+        if coverage['status']=='INCOMPLETE':raise StoreError('Source coverage incomplete: include every changed file or declare repositories/write_paths for sibling repos')
+        if not actual or data.get('tested_source_hashes') != actual:
+            raise ConflictError('Provide tested_source_hashes captured at check time; current files must match them')
+        result['tested_source_hashes']=dict(actual)
+        result['source_coverage']=coverage['status']
+    result.update(contract_sha256=contract['sha256'],contract_revision=contract['revision'])
+    artifact_check=_artifact_checks(repo,home,contract['content'])
     if artifact_check['status']!='CLEAR':raise StoreError('Handoff blocked by artifact check: '+'; '.join(artifact_check['reasons']))
     body = {**data, 'milestone': 'IMPLEMENTATION_VERIFICATION', 'phase': 'IMPLEMENTED',
             'source_paths': paths, 'summary': data.get('summary', result['reported_verdict']),
@@ -219,20 +308,28 @@ def recheck(repo,home,topic,expected_revision=None):
     from .continuity import _paths
     absent=body.get('new_paths',[])
     if not _paths(absent):raise StoreError('Invalid new_paths in saved checkpoint; reconcile the report')
-    source_ok=(body.get('source_hashes') and observe_source_hashes(repo,body['source_hashes'])['status']=='CURRENT') or (not body.get('source_hashes') and absent)
+    manifest_check=sources.observe(contract['content'],repo,body.get('source_manifest')) if contract['content'].get('repositories') else None
+    source_ok=(manifest_check['status']=='CURRENT' if manifest_check else
+        (body.get('source_hashes') and observe_source_hashes(repo,body['source_hashes'])['status']=='CURRENT') or (not body.get('source_hashes') and absent))
+    if not manifest_check and sources.legacy_coverage(contract['content'],repo,body.get('source_hashes'))['status']=='INCOMPLETE':source_ok=False
     if not source_ok:problems.append('Source baseline missing or stale; reconcile before patch')
     if any((Path(repo)/p).exists() or (Path(repo)/p).is_symlink() for p in body.get('new_paths',[])):problems.append('A planned new path now exists; reconcile concurrent work')
     from .practical import git_snapshot
     current_git=git_snapshot(repo)
     if not current_git.get('git_available') or current_git.get('changes_truncated'):problems.append('Git observation unavailable/truncated; inspect full scope before patch')
     if body.get('prewrite_git') and body['prewrite_git']!=current_git:problems.append('Git baseline changed after decision; inspect/reconcile before patch')
+    if manifest_check:
+        multi_git=_repo_git(repo,contract['content'])
+        views=[multi_git['anchor'],*multi_git['sources'].values()]
+        if any(not v.get('git_available') or v.get('changes_truncated') for v in views):problems.append('Per-repo Git observation unavailable/truncated')
+        if body.get('prewrite_repositories')!=multi_git:problems.append('A repository Git baseline changed; reconcile before patch')
     from .installer import GuidanceInstaller
     installed=GuidanceInstaller(repo,home,mode='advisory').installed_status()
     if set(installed['installed_files'].values())!={'ADVISORY'}:problems.append('Current guidance is not consistently ADVISORY')
-    from .artifacts import Artifacts
-    artifacts=Artifacts(repo,home).check()
+    artifacts=_artifact_checks(repo,home,contract['content'])
     if artifacts['status']!='CLEAR':problems.append('Artifact/index check blocked: '+'; '.join(artifacts['reasons']))
     return {'status':'BLOCKED' if problems else 'REPORTED_PRECONDITIONS_CURRENT','reasons':problems,
+            'source_coverage':manifest_check,
             'current_chat_decision_must_be_revalidated':True,'trusted':False,'write_authorized':False,
             'next_action':'Stop and reconcile' if problems else 'Agent revalidates actual current-chat decision and scope immediately before its provider patch'}
 
@@ -267,7 +364,10 @@ def compact_resume(out,artifact_check=None,artifact_directory=None):
                 'reported_completed':bounded(brief['reported_completed']), 'reported_remaining':bounded(brief['reported_remaining']),
                 'reported_blockers':bounded(brief['reported_blockers']), 'reported_changed_paths':bounded(brief['reported_changed_paths']),
                 'reported_next_action':(brief['reported_next_action'] or '')[:500]},
-            'lists_truncated':truncated or len(source)>5,'content_truncated':truncated or len(source)>5,
+            'source_hashes_summarized':len(source)>5,'recorded_source_file_count':len(source),
+            'source_coverage':observed.get('coverage'),
+            'repository_sources':observed.get('repositories',[]),
+            'lists_truncated':truncated,'content_truncated':truncated,
             'git':git,'history_available':True,'write_authorized':False,
             'next_action':packet['next_action']}
 

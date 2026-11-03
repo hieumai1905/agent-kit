@@ -50,10 +50,12 @@ def _aggregate(states, *, truncated=False):
 
 
 class _Files:
-    def __init__(self, repo):
+    def __init__(self, repo, *, max_files=None, max_total_bytes=None):
         self.root = Path(repo).resolve(strict=True)
         self.cache = {}
         self.bytes_read = 0
+        self.max_files = max_files
+        self.max_total_bytes = max_total_bytes
 
     def check(self, name, expected):
         if not isinstance(expected, str) or not HEX64.fullmatch(expected):
@@ -74,7 +76,7 @@ class _Files:
                 or '.git' in relative.parts or relative.as_posix() != name
                 or any(c in name for c in '*?[]')):
             return {'status': 'UNKNOWN', 'reason': 'UNSAFE_PATH'}
-        if len(self.cache) >= MAX_FILES:
+        if len(self.cache) >= (MAX_FILES if self.max_files is None else self.max_files):
             return {'status': 'UNKNOWN', 'reason': 'FILE_COUNT_LIMIT'}
         target = self.root
         try:
@@ -87,7 +89,8 @@ class _Files:
             before = target.stat()
             if not stat.S_ISREG(before.st_mode):
                 return {'status': 'UNKNOWN', 'reason': 'NOT_REGULAR_FILE'}
-            if before.st_size > MAX_FILE_BYTES or self.bytes_read + before.st_size > MAX_TOTAL_BYTES:
+            total_limit = MAX_TOTAL_BYTES if self.max_total_bytes is None else self.max_total_bytes
+            if before.st_size > MAX_FILE_BYTES or self.bytes_read + before.st_size > total_limit:
                 return {'status': 'UNKNOWN', 'reason': 'FILE_SIZE_OR_TOTAL_BUDGET'}
             fd = os.open(target, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
             with os.fdopen(fd, 'rb') as source:
@@ -95,7 +98,7 @@ class _Files:
                 if (not stat.S_ISREG(opened.st_mode) or opened.st_ino != before.st_ino
                         or opened.st_dev != before.st_dev):
                     return {'status': 'UNKNOWN', 'reason': 'FILE_CHANGED_DURING_READ'}
-                read_limit = min(MAX_FILE_BYTES, MAX_TOTAL_BYTES - self.bytes_read)
+                read_limit = min(MAX_FILE_BYTES, total_limit - self.bytes_read)
                 payload = source.read(read_limit)
                 self.bytes_read += len(payload)
                 after = os.fstat(source.fileno())
@@ -191,7 +194,15 @@ def task_status(records, task_id, *, task=None, contract=None, progress_record=N
     raw_phase = progress.get('phase')
     phase = PHASES.get(raw_phase, 'UNRECOGNIZED') if isinstance(raw_phase, str) else 'NOT_REPORTED'
     progress_binding = _binding(progress, contract)
-    source_freshness = files.hashes(progress.get('source_hashes'))
+    if progress.get('source_manifest') is not None:
+        from .sources import observe
+        source_freshness = observe(contract['content'], core.store.repo, progress['source_manifest'])
+    else:
+        from .sources import legacy_coverage
+        source_freshness = files.hashes(progress.get('source_hashes'))
+        coverage = legacy_coverage(contract['content'], core.store.repo, progress.get('source_hashes'), progress.get('changed_paths'))
+        source_freshness['coverage'] = coverage
+        if coverage['status'] == 'INCOMPLETE': source_freshness['status'] = 'UNKNOWN'
     work = {
         'phase': phase, 'reported_phase': raw_phase[:180] if isinstance(raw_phase, str) else None,
         'record_id': progress_record['record_id'] if progress_record else None,

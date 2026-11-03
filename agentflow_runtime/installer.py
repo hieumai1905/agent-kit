@@ -212,6 +212,9 @@ For coding: first show a concise scoped Task Contract, wait for a genuine user d
         variants=[self._content(m)[name].strip('\n') for m in MODES]
         from .lean_guidance import render
         variants.extend(render(self.command,m,legacy_rc1=True)[name].strip('\n') for m in MODES)
+        variants.extend(render(self.command,m,legacy_rc2=True)[name].strip('\n') for m in MODES)
+        variants.append(render(self.command,'advisory',True,legacy_rc2=True)[name].strip('\n'))
+        variants.append(render(self.command,'advisory',True,legacy_rc1=True)[name].strip('\n'))
         for m in MODES:
             for continuity in (True,False):
                 variants.append(self._content(m,continuity=continuity,lean=False)[name].strip('\n'))

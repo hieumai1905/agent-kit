@@ -19,7 +19,7 @@ On a new session, retrieve the checkpoint yourself and state what is done, pendi
 
 
 def checkpoint_template(records, task_id, milestone='HANDOFF'):
-    if milestone not in MILESTONES: raise StoreError('Unknown checkpoint milestone')
+    if milestone not in MILESTONES: raise StoreError('Unknown checkpoint milestone. Allowed: '+', '.join(MILESTONES)+'; progress within a batch uses HANDOFF with phase IMPLEMENTING')
     contract = records.core.contract_revision(task_id)
     previous = records.latest('PROGRESS', task_id=task_id)
     # Copy only known continuity fields, not arbitrary transcript data. Facts
@@ -56,7 +56,7 @@ def save_checkpoint(records, task_id, content, *, expected_revision=0):
     """Validate a milestone report then CAS through existing PROGRESS records."""
     if not isinstance(content, dict) or content.get('checkpoint_schema') != SCHEMA:
         raise StoreError('Expected agentflow.checkpoint.v1 object, not a template wrapper')
-    if content.get('milestone') not in MILESTONES: raise StoreError('Unknown checkpoint milestone')
+    if content.get('milestone') not in MILESTONES: raise StoreError('Unknown checkpoint milestone. Allowed: '+', '.join(MILESTONES))
     if not isinstance(content.get('phase'), str) or content['phase'] not in PHASES:
         raise StoreError('Unsupported reported phase. Allowed: '+', '.join(sorted(PHASES))+'; verification in progress uses VERIFYING or TESTING. Reread/reconcile before saving.')
     for name, limit in (('summary', 4000), ('next_action', 2000)):
@@ -82,8 +82,13 @@ def save_checkpoint(records, task_id, content, *, expected_revision=0):
         content.get(key) for key in ('advisory_decision', 'human_contract_decision_observed', 'advisory_delegation')):
         raise StoreError('Contract-decision milestone requires reported decision provenance')
     hashes = content.get('source_hashes')
-    if content['milestone'] == 'IMPLEMENTATION_VERIFICATION' and not hashes:
+    manifest=content.get('source_manifest')
+    if content['milestone'] == 'IMPLEMENTATION_VERIFICATION' and not hashes and manifest is None:
         raise StoreError('Implementation/verification checkpoint requires reported source_hashes')
+    if manifest is not None:
+        from .sources import observe
+        state=observe(contract['content'],records.core.store.repo,manifest)
+        if state['status']!='CURRENT':raise ConflictError('Per-repo source coverage missing/stale; reconcile: '+str(state.get('reason',state['status'])))
     if hashes is not None:
         observed = observe_source_hashes(records.core.store.repo, hashes)
         if observed['status'] != 'CURRENT':
@@ -120,16 +125,25 @@ def last_reported_verification(records, task_id, contract, progress_record):
             # rc2 reports bind the actual tested snapshot inside the report.
             # rc1 history retains its original immutable checkpoint binding.
             own_binding=any(key in report for key in
-                            ('contract_sha256','contract_revision','tested_source_hashes'))
+                            ('contract_sha256','contract_revision','tested_source_hashes','tested_sources'))
             bound=report if own_binding else content
             hashes=report.get('tested_source_hashes') if own_binding else content.get('source_hashes')
-            source = observe_source_hashes(records.store.repo, hashes)
+            from .sources import observe,legacy_coverage
+            tested_manifest=report.get('tested_sources')
+            if tested_manifest is not None:
+                source=observe(contract['content'],records.store.repo,tested_manifest)
+                coverage={'status':source['coverage']}
+            else:
+                source=observe_source_hashes(records.store.repo,hashes)
+                coverage=legacy_coverage(contract['content'],records.store.repo,hashes,content.get('changed_paths'))
+                if coverage['status']=='INCOMPLETE':source['status']='UNKNOWN'
             binding = _binding(bound, contract)
             return {'record_id': row['id'], 'progress_revision': row['revision'],
                     'contract_sha256': bound.get('contract_sha256'),
                     'contract_revision': bound.get('contract_revision'),
                     'binding_origin':'TESTED_REPORT' if own_binding else 'LEGACY_IMMUTABLE_PROGRESS',
                     'contract_freshness': binding, 'source_freshness': source,
+                    'source_coverage':coverage,
                     'freshness': _aggregate([binding, source['status']]),
                     'assessment': report, 'trust': 'UNVERIFIED_REPORT',
                     'trusted': False, 'write_authorized': False}
@@ -160,6 +174,7 @@ def resume_brief(progress_record, status, verification=None):
             summary.update({key: verification[key] for key in
                 ('record_id', 'progress_revision', 'contract_sha256', 'contract_revision', 'contract_freshness')})
             summary['source_freshness'] = verification['source_freshness']['status']
+            summary['source_coverage'] = verification['source_coverage']
     return {
         'checkpoint_format': 'MISSING' if not progress_record else 'STRUCTURED' if structured else 'LEGACY',
         'record_id': progress_record['record_id'] if progress_record else None,

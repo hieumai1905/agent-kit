@@ -1,6 +1,6 @@
-# Dùng kit 1.1.0-rc2
+# Dùng kit 1.1.0-rc3
 
-Đây là bản thử v1.1.0-rc2 đã công bố để kiểm thử thực tế. Người dùng giao việc bình thường; agent đọc workflow đã setup. Giữ một writer, duyệt trực tiếp trong chat. Không tự commit/push/deploy hoặc đổi model/quyền/dependencies.
+Đây là bản thử rc3 để kiểm thử thực tế. Người dùng giao việc bình thường; agent đọc workflow đã setup. Giữ một writer, duyệt trực tiếp trong chat. Không tự commit/push/deploy hoặc đổi model/quyền/dependencies.
 
 ## Setup
 
@@ -25,7 +25,9 @@ Các JSON là việc nội bộ của agent, không yêu cầu người dùng nh
 {"analysis_level":"QUICK","work_type":"BUG","objective":"Trả exit 1 khi thiếu key","scope":{"functional":["scripts/locales.py","scripts/tests/test_locales.py"],"excluded":["Bản dịch"]},"preserve":["Giữ dữ liệu dịch và hành vi khi đủ key"],"acceptance":["--check thiếu key trả 1"],"verification_strategy":["Chạy reproduction và unittest"],"knowledge":{"confirmed":["Người dùng yêu cầu sửa exit status"],"observed":["Reproduction hiện trả 0"],"proposed":[]}}
 ```
 
-`work_type` là BUG/FEATURE/MAINTENANCE. STANDARD/DEEP giữ kiểm structural hiện có. Thông tin cần người dùng quyết phải ở open_questions/gaps với blocking đúng, không tự xác nhận giả định. Hỏi/khảo sát độc lập trả lời trực tiếp, hoặc `work start "Chủ đề" --kind investigate` không sinh state. Start trả binding, checkpoint revision và decision_input_example; tự kiểm artifact nếu inventory đã có, trình contract và chờ duyệt. Không tự tái sử dụng một việc gần giống: helper trả match để reconcile.
+`work_type` là BUG/FEATURE/MAINTENANCE. STANDARD/DEEP giữ kiểm structural hiện có; xem `contract-template --level DEEP` khi cần hình dạng field. Routing xét objective, risk và scope thực: migration/auth/payment có thể yêu cầu DEEP; footprint rộng ít nhất STANDARD. Loại trừ/read-only/docs không tự tạo trigger. Thông tin cần người dùng quyết phải ở open_questions/gaps với blocking đúng, không tự xác nhận giả định. Hỏi/khảo sát độc lập trả lời trực tiếp, hoặc `work start "Chủ đề" --kind investigate` không sinh state. Start trả binding và checkpoint_revision; tự kiểm artifact nếu inventory đã có, trình contract và chờ duyệt. Không tự tái sử dụng một việc gần giống: helper trả match để reconcile.
+
+CLI thường trả kết quả gọn; `--verbose` trả đầy đủ nếu chọn trước khi gọi. Không chạy lại mutation chỉ để xem chi tiết: dùng resume/handoff chỉ đọc. API Python vẫn trả dữ liệu đầy đủ. Ưu tiên CLI trực tiếp, kiểm mã thoát. Wrapper Python cần dùng `agentflow_runtime.client.run_checked(argv, data=payload)`: lỗi, timeout, JSON sai, BLOCKED hay readback sai phải kết thúc trước patch. Không dùng capture_output rồi bỏ returncode. Client không cưỡng chế caller cố tình bắt/bỏ lỗi, không là sandbox.
 
 ### 2. Quyết định và checkpoint trước patch
 
@@ -35,9 +37,15 @@ Sau quyết định thật trong chat hiện tại: `work checkpoint "Tên việ
 {"milestone":"CONTRACT_DECISION","contract_sha256":"HASH_FROM_START","expected_revision":1,"phase":"IMPLEMENTING","summary":"Người dùng duyệt contract đã trình","completed":["Khảo sát và trình contract"],"remaining":["Sửa và kiểm thử"],"blockers":[],"changed_paths":[],"source_paths":["scripts/locales.py"],"next_action":"Kiểm lại trước patch","advisory_decision":{"kind":"DIRECT_HUMAN","decision":"APPROVED","source":"Tham chiếu message người dùng thật trong chat hiện tại"}}
 ```
 
-Có thể dùng input ngắn hơn: {"contract_sha256":"HASH","expected_revision":1,"decision":{"choice":"APPROVED","source":"USER message thực"},"source_paths":["scripts/locales.py"]}. Lấy expected_revision thực từ start/resume, không đoán 1. Helper chỉ tự điền nội dung nói rằng quyết định đã được báo cáo, không tự suy ra tiến độ code. Nếu chỉ tạo file mới, dùng `new_paths` cho các đường dẫn vẫn chưa tồn tại. Helper lưu và readback, không cấp quyền. Lệnh quyết định tự thực hiện persist → readback → recheck, trả decision_readback, prepatch_check và finish_input_example. Kiểm nội dung đã lưu cùng kết quả; nonzero/BLOCKED phải dừng trước patch. Không gọi lại readback/--check ngay khi bước này thành công; chỉ dùng `work checkpoint "Tên việc" --check` sau gián đoạn hoặc thay đổi liên quan trước batch tiếp theo. Kiểm tra hiện tại là snapshot, không khóa OS; agent vẫn phải kiểm scope và quyết định thật ngay trước mỗi đợt tác động. Hash/path/Git đổi phải reconcile rồi ghi checkpoint mới theo facts hiện tại, không lặp lại payload cũ mù.
+Có thể dùng input ngắn hơn: {"contract_sha256":"HASH","expected_revision":1,"decision":{"choice":"APPROVED","source":"USER message thực"},"source_paths":["scripts/locales.py"]}. Hoặc CLI trực tiếp:
 
-Checkpoint HANDOFF/SCOPE_CHANGE/IMPLEMENTATION_VERIFICATION dùng cùng lệnh với milestone và facts tương ứng. Khi chia nhiều batch có chủ đích (ví dụ sửa test trước rồi sửa code), đối chiếu thay đổi vừa làm với scope trước; gửi progress có source_paths và prepare_next_batch:true để lưu baseline mới và tự recheck. Giữ nguyên quyết định của contract hiện tại, không ghi thêm approval giả. Thay đổi lạ/concurrent phải điều tra trước, không refresh mù. Payload batch chỉ cần khi thực sự chia batch; xem `work checkpoint --help`. Quyết định/checkpoint qua recheck mới trả finish_input_example; BLOCKED chỉ trả lý do dừng. Đổi contract dùng `propose-contract` với contract đầy đủ; approval cũ không theo sang revision mới. Conflict phải resume/read lại và reconcile; không tự lấy revision mới để ghi đè nội dung khác.
+```sh
+python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT work checkpoint "Tên việc" --decision APPROVED --source-ref "USER message thật" --expected-revision N --contract-sha256 HASH --source scripts/locales.py
+```
+
+Lấy revision thực từ start/resume, không đoán 1. Helper chỉ tự điền nội dung nói rằng quyết định đã được báo cáo, không tự suy ra tiến độ code. Nếu chỉ tạo file mới, dùng `new_paths` cho đường dẫn chưa tồn tại. Quyết định tự persist → readback → recheck, trả decision_readback/prepatch_check, không cấp quyền. Nonzero/BLOCKED phải dừng trước patch. Không gọi lại readback/--check ngay khi thành công; chỉ recheck sau gián đoạn/thay đổi trước batch tiếp theo. Hash/path/Git đổi phải reconcile rồi checkpoint facts mới, không lặp payload cũ mù. Đây là snapshot, không khóa OS.
+
+Checkpoint chỉ nhận CONTRACT_DECISION/HANDOFF/SCOPE_CHANGE/IMPLEMENTATION_VERIFICATION, không có IMPLEMENTATION_PROGRESS. Tiến độ thường dùng HANDOFF/phase IMPLEMENTING. Khi chia nhiều batch có chủ đích, đối chiếu thay đổi vừa làm với scope trước; gửi progress có source_paths (legacy) và prepare_next_batch:true để lưu baseline mới và tự recheck. Giữ nguyên quyết định contract, không ghi approval giả. Thay đổi lạ/concurrent phải điều tra trước. Mẫu finish đầy đủ chỉ ở API/--verbose. Đổi contract dùng `propose-contract`; approval cũ không theo revision mới. Conflict phải đọc/reconcile, không tự lấy revision mới để ghi đè.
 
 ### 3. Kiểm thử và bàn giao
 
@@ -49,13 +57,33 @@ Checkpoint HANDOFF/SCOPE_CHANGE/IMPLEMENTATION_VERIFICATION dùng cùng lệnh v
 
 Tham chiếu A1../P1.. gắn với thứ tự acceptance/preserve trong contract. Chỉ báo những gì thực chạy. Helper không chạy command trong JSON. Thiếu reproduction/coverage/execution thì mức kết luận bị hạ. Finish tự kiểm artifact và lưu báo cáo cùng bàn giao trong checkpoint versioned, trả handoff_saved/handoff_revision; không gọi lặp handoff/artifacts check sau finish thành công. Không tự commit hoặc trusted-complete. Chi tiết: VERIFICATION.md.
 
+### Nhiều repo / footprint rõ ràng
+
+Thêm vào contract trước khi trình duyệt (root phải là Git root tuyệt đối, file tương đối cụ thể, không directory/glob/symlink):
+
+```json
+{"repositories":[{"key":"core","root":"/ABS/Core","write_paths":[],"read_paths":["contract/canvas.json"]},{"key":"frontend","root":"/ABS/Frontend","write_paths":["src/view.mjs","tests/view.test.mjs"],"read_paths":[]}]}
+```
+
+Tối đa 8 repo, 128 file, 64 MiB tổng và 8 MiB/file. File write chưa tồn tại được ghi null, không bị bỏ qua; read-only input thiếu phải chặn; việc xuất hiện/thay đổi ngoài baseline làm check stale. Decision/checkpoint tự chụp toàn bộ footprint, không trộn source_paths legacy. `changed_sources` là object repo key → danh sách write paths. Không dùng hash Core để đại diện frontend. Root khai báo không cấp quyền hoặc tự cài guidance vào repo khác.
+
+Ngay trước test, chụp snapshot và giữ file bất biến:
+
+```sh
+python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/Core work sources "Tên việc" --output /RETURNED/artifact_directory/test-batch.json
+```
+
+Sau test, finish dùng `tested_sources_file` là đường dẫn trên thay source_paths/tested_source_hashes; các field/checks còn lại như ví dụ. File phải ở artifact_directory đã trả; payload cũng phải ngoài mọi product root. Snapshot không chạy test. Finish yêu cầu khớp đủ mọi file đã khai báo; thiếu repo hoặc source đổi bị chặn. DECLARED_SCOPE_COMPLETE chỉ bao phủ footprint khai báo, không chứng minh đã khai báo đủ mọi dependency hay test thực chạy. Báo cáo legacy thiếu sibling sẽ hiện INCOMPLETE/UNKNOWN, không tự nâng thành bằng chứng đầy đủ.
+
 ## Resume và lịch sử
 
 `resume "Chủ đề cụ thể" --compact` chỉ đọc, không khởi tạo/migrate state; không trả mẫu input duyệt. Xem summary, remaining, blockers, freshness và binding; đối chiếu Git/source và quyết định hiện tại trước khi tác động. reported_verification đọc bản ghi kiểm thử gần nhất trong lịch sử cùng task, có progress_revision và binding riêng. Tiến độ mới không làm mất báo cáo; refresh tiến độ không refresh bằng chứng kiểm thử. Source/contract đổi làm báo cáo STALE; thiếu binding/không đọc được là UNBOUND/UNKNOWN. Chỉ CURRENT mới khớp nguồn/contract hiện tại, vẫn là UNVERIFIED_REPORT. Không chọn task mới nhất khi ý định mơ hồ. Lịch sử: `work history "Tên việc" --limit 5`, dùng `--before` từ next_before để đọc tiếp. Bản tóm tắt được giới hạn, lịch sử không bị xóa. Nếu cần nội dung checkpoint đầy đủ dùng resume không --compact / handoff.
 
 ## Artifact local-only
 
-Setup/start/checkpoint/resume trả `artifact_directory` trong state theo repo, đã được inventory bao phủ. Dùng thư mục này cho payload/report cần tạo. Chat và checkpoint thường đã đủ; không tạo thêm báo cáo Markdown cho mỗi việc bình thường. Compact resume có binding, scope, hash đã lưu, source observations và artifact check; chỉ đọc history/bản đầy đủ khi có dữ liệu thiếu/truncated hoặc câu hỏi cụ thể, không gọi lặp các kiểm đã có kết quả.
+Setup/start/checkpoint/resume trả `artifact_directory` trong state theo repo, đã được inventory bao phủ. Dùng cho payload/report cần tạo. Product test worktrees/fixtures đặt ngoài các root inventory kit-only; lưu baseline dạng hash/patch, tránh copy nguyên code sản phẩm vào state rồi nhận nhầm provenance. Chat/checkpoint thường đã đủ; không tạo thêm Markdown mỗi việc. Compact resume có source observations/artifacts; source_hashes_summarized chỉ nói danh sách hash được rút gọn, không yêu cầu đọc full. Chỉ đọc thêm khi thiếu fact cụ thể/thực sự truncated/mơ hồ. Với process đang chạy, chờ output theo khoảng phù hợp (thường 30–50 giây), tránh vòng đọc log không đổi qua nhiều lượt model. Không lặp full suite nếu không có thay đổi/lỗi/nghi vấn mới.
+
+Fingerprint scan đọc metadata có giới hạn và chỉ hash artifact cùng kích thước với blob ứng viên; nội dung khác kích thước không thể trùng byte. Giới hạn không đọc được/vượt budget vẫn BLOCKED; marker/path/state và bản sao cùng hash vẫn bị phát hiện.
 
 `artifacts inventory` đọc inventory ngoài repo; `artifacts register --data -` nhận `items` có path tuyệt đối, kind RUNTIME/GUIDANCE và reason. Runtime artifact phải ngoài project; chỉ guidance kit-only chưa tracked có thể ở root. Các helper mặc định ghi DB/inventory ngoài project. Agent phải đăng ký artifact bổ sung trước khi tạo và cập nhật fingerprint sau khi ghi.
 

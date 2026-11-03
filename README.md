@@ -2,13 +2,13 @@
 
 Workflow cho coding agent trong dự án hiện tại: **hiểu yêu cầu → contract → duyệt → checkpoint → sửa → kiểm chứng → bàn giao**.
 
-[MIT License](LICENSE) · Python 3.11+ · Git · **v1.1.0-rc2 — bản thử để kiểm thử thực tế**
+[MIT License](LICENSE) · Python 3.11+ · Git · **v1.1.0-rc3 — bản thử để kiểm thử thực tế**
 
 ## Bắt đầu
 
-Mở agent tại dự án rồi gửi nguyên prompt trong [INIT_PROMPT.md](INIT_PROMPT.md). Agent tự clone tag `v1.1.0-rc2` ra ngoài dự án, kiểm phiên bản và làm mới workflow. Đích mặc định là thư mục làm việc hiện tại lúc nhận prompt. Các bản/tag cũ giữ nguyên; nâng cấp phải giữ state và thay đổi đang có.
+Mở agent tại dự án rồi gửi nguyên prompt trong [INIT_PROMPT.md](INIT_PROMPT.md). Agent tự clone tag `v1.1.0-rc3` ra ngoài dự án, kiểm phiên bản và làm mới workflow. Đích mặc định là thư mục làm việc hiện tại lúc nhận prompt. Các bản/tag cũ giữ nguyên; nâng cấp phải giữ state và thay đổi đang có.
 
-Có thể [tải ZIP của tag](https://github.com/hieumai1905/agent-kit/archive/refs/tags/v1.1.0-rc2.zip). Giải nén ngoài dự án và làm theo [BOOTSTRAP.md](BOOTSTRAP.md). Đây là bản thử; chưa khẳng định hiệu quả hoặc độ ổn định tổng quát trên mọi repo/provider.
+Có thể [tải ZIP của tag](https://github.com/hieumai1905/agent-kit/archive/refs/tags/v1.1.0-rc3.zip), giải nén ngoài dự án và làm theo [BOOTSTRAP.md](BOOTSTRAP.md). Đây là bản thử; chưa khẳng định mức tiết kiệm token hay độ ổn định tổng quát trên mọi repo/provider.
 
 ```sh
 python3 -B /ABS/KIT/tools/verify_release.py
@@ -33,11 +33,14 @@ Hỏi/đọc/nghiên cứu độc lập được trả lời trực tiếp. Agen
 | `work start` | Tìm việc đang có / tạo contract và checkpoint chờ quyết định |
 | `work checkpoint` | Lưu milestone với CAS/binding; quyết định tự readback/recheck, `--check` dùng sau gián đoạn |
 | `work finish` | Đánh giá báo cáo theo acceptance/preserve, kiểm artifact và lưu bàn giao |
+| `work sources` | Chụp toàn bộ footprint nhiều repo trước test, không thực thi test |
 | `resume TOPIC --compact` | Đọc tóm tắt có giới hạn; đối chiếu freshness, không khôi phục quyền |
 | `work history` | Tra lịch sử theo trang, không xóa bằng chứng cũ |
 | `artifacts check` | Kiểm index blobs, artifact roots và file chưa tracked |
 
 Người dùng không nhập IDs/JSON. Payload mẫu nằm trong [USAGE.md](docs/USAGE.md). CLI cũ và state v1.0.2 được giữ tương thích. H/D, SI, model-advice là đường nâng cao riêng; không tự bật.
+
+Rc3 thêm coverage theo repo/file và giữ đúng mã lỗi qua checked client; sửa routing theo functional scope. CLI mặc định gọn, giữ chi tiết trong state; không đọc full resume chỉ vì danh sách hash được rút gọn. Các kiểm tra về approval/CAS/index và báo cáo chưa xác thực vẫn áp dụng. Hướng dẫn chờ process và đặt testtree ngoài inventory giúp tránh vòng đọc log/kiểm artifact không cần thiết, cần đo lại trong công việc thật.
 
 ## Kiểm chứng và giới hạn
 

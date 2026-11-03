@@ -6,6 +6,7 @@ approval channel (not implemented) must validate any final authorization.
 """
 from __future__ import annotations
 from typing import Any
+import re
 
 LEVELS=('QUICK','STANDARD','DEEP')
 PLACEHOLDERS={'tbd','todo','unknown','?', '...', 'later','chua ro','chưa rõ'}
@@ -25,9 +26,25 @@ def analyze_readiness(contract:dict)->dict:
                 'trusted_approval':False}
     declared=contract.get('analysis_level','STANDARD')
     if declared not in LEVELS:declared='STANDARD'
-    combined=(str(contract.get('objective',''))+' '+str(contract.get('risk_summary',''))).casefold()
-    risk_alert=any(term in combined for term in CRITICAL_TERMS)
-    effective='DEEP' if risk_alert else declared
+    scope=contract.get('scope',{})
+    functional=scope.get('functional',[]) if isinstance(scope,dict) else []
+    writes=[]
+    for repo in contract.get('repositories',[]) if isinstance(contract.get('repositories',[]),list) else []:
+        if isinstance(repo,dict) and isinstance(repo.get('write_paths'),list):writes+=repo['write_paths']
+    # Excluded/read-only paths do not describe effects. Explicit write paths do.
+    relevant=[]
+    for value in [*functional,*writes] if isinstance(functional,list) else writes:
+        if not isinstance(value,str):continue
+        text=value.casefold().strip()
+        if text.startswith(('read-only','chỉ đọc','chi doc')):continue
+        if re.match(r'^(?:[^ ]*/)?docs?/[^ ]+\.md(?:$|:)',text) or (text.endswith('.md') and ' ' not in text):continue
+        relevant.append(text)
+    risk_fields=[('objective',str(contract.get('objective',''))),('risk_summary',str(contract.get('risk_summary','')))]
+    risk_fields += [('scope.functional/write_paths',text) for text in relevant]
+    triggers=[{'field':field,'term':term} for field,text in risk_fields for term in CRITICAL_TERMS if term in text.casefold()]
+    risk_alert=bool(triggers)
+    broad=len(relevant)>5 or any('/' in text and not re.search(r'\.[a-z0-9]{1,8}(?:$|[: )])',text) for text in relevant)
+    effective='DEEP' if risk_alert else 'STANDARD' if declared=='QUICK' and broad else declared
     blockers=[]; warnings=[]
     if not meaningful(contract.get('objective')):
         blockers.append('Missing meaningful objective')
@@ -72,7 +89,7 @@ def analyze_readiness(contract:dict)->dict:
                 blockers.append('Unresolved approval-relevant question')
     if effective=='DEEP':
         if not meaningful(contract.get('risk_summary')):
-            blockers.append('Critical domain needs risk_summary')
+            blockers.append('Critical domain needs risk_summary (nonempty string; got '+type(contract.get('risk_summary')).__name__+')')
         if not isinstance(contract.get('evidence_sources'),list) or not contract['evidence_sources']:
             blockers.append('Critical domain needs evidence provenance')
         if not isinstance(contract.get('solution_challenge'),dict):
@@ -83,8 +100,10 @@ def analyze_readiness(contract:dict)->dict:
         warnings.append('User-owned pending questions not explicitly recorded')
     if risk_alert and declared!='DEEP':
         warnings.append('Risk trigger escalated level to DEEP')
+    elif broad and declared=='QUICK':warnings.append('Broad code footprint requires STANDARD scenario/impact checks')
     return {'status':'READY_FOR_HUMAN_REVIEW' if not blockers else 'NOT_READY',
             'declared_level':declared,'effective_level':effective,
+            'routing_triggers':triggers[:8], 'broad_footprint':broad,
             'blockers':blockers,'warnings':warnings,
             'semantic_correctness_verified':False,
             'trusted_approval':False,'write_authorized':False,
@@ -93,7 +112,7 @@ def analyze_readiness(contract:dict)->dict:
 
 def contract_template(level='STANDARD'):
     if level not in LEVELS:raise ValueError('Unknown analysis level')
-    return {'analysis_level':level,
+    return {'analysis_level':level,'work_type':'MAINTENANCE',
             'objective':'<State the verifiable intended outcome>',
             'accepted_behavior':['<State desired behavior and success criteria>'],
             'preserve':['<State behaviors/constraints to preserve>'],

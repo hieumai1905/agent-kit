@@ -1,0 +1,49 @@
+"""Small everyday CLI views. Full records remain in SQLite/read-only resume."""
+
+
+def work_result(value):
+    keys=('action','task_id','record_id','revision','contract_sha256','readback_matches',
+          'saved','no_changes','status','artifact_directory','handoff_saved','handoff_revision',
+          'auto_complete','source_snapshot_file','scope_sha256','repositories','files',
+          'read_only','read_only_product_and_db','next_action','trusted','write_authorized')
+    result={key:value[key] for key in keys if key in value}
+    if 'binding' in value:result['binding']=value['binding']
+    if 'matches' in value:
+        match=value['matches'];result['matches']={k:match[k] for k in ('status','selected_task_id','choices') if k in match}
+    if 'checkpoint' in value:result['checkpoint_revision']=value['checkpoint']['revision']
+    if 'decision_readback' in value:
+        decision=value['decision_readback']
+        result['decision_readback']={k:decision[k] for k in ('kind','decision','contract_sha256','contract_revision') if k in decision} if isinstance(decision,dict) else decision
+        result['decision_source_reference']=str(decision.get('source',''))[:300] if isinstance(decision,dict) else None
+    if 'prepatch_check' in value:
+        check=value['prepatch_check']
+        result['prepatch_check']={k:check[k] for k in ('status','reasons','current_chat_decision_must_be_revalidated','write_authorized') if k in check}
+    if 'verification' in value:
+        v=value['verification']
+        result['verification']={k:v[k] for k in ('reported_verdict','coverage','missing_criteria','incomplete_checks','failed_checks','source_coverage','trusted','write_authorized') if k in v}
+    if 'artifact_check' in value:
+        a=value['artifact_check'];result['artifact_check']={k:a[k] for k in ('status','reasons','unresolved_paths') if k in a}
+    if 'routing' in value:
+        r=value['routing'];result['routing']={k:r[k] for k in ('declared_level','effective_level','warnings','routing_triggers') if k in r}
+    if isinstance(value.get('source_coverage'),dict):
+        result['source_coverage']={k:value['source_coverage'][k] for k in ('status','coverage','repositories','reason') if k in value['source_coverage']}
+    # No mutation rerun is needed to expand output: resume/handoff are read-only.
+    result['details']='Read saved details with resume/handoff when needed; --verbose must be chosen before a mutation, never retry merely for verbosity'
+    return result
+
+
+def error_hint(message):
+    if 'milestone' in message:
+        return {'field':'milestone','allowed':['CONTRACT_DECISION','SCOPE_CHANGE','IMPLEMENTATION_VERIFICATION','HANDOFF'],
+                'hint':'Ordinary in-scope progress uses HANDOFF with phase IMPLEMENTING'}
+    if 'risk_summary' in message:
+        return {'field':'risk_summary','expected_type':'nonempty string','hint':'Use contract-template --level DEEP; keep verified risk facts, do not invent evidence'}
+    if 'source_paths' in message or 'Source file' in message:
+        return {'field':'source_paths','expected_type':'explicit relative files, no directories/globs',
+                'hint':'For sibling repos declare repositories with key/root/write_paths; work sources captures the complete footprint'}
+    if 'repositories' in message or 'source coverage' in message.lower():
+        return {'field':'repositories','example':{'key':'frontend','root':'/ABS/GIT_ROOT','write_paths':['tests/view.test.mjs']},
+                'hint':'Declare all affected repos/files in the contract; capture with work sources before tests'}
+    if 'Contract not ready' in message:
+        return {'hint':'contract-template --level STANDARD or DEEP lists field shapes; check-contract validates before storage'}
+    return None

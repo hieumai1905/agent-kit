@@ -1,4 +1,4 @@
-"""Agent Workflow Kit v1.1.0-rc2 local process CLI (V3 engine).
+"""Agent Workflow Kit v1.1.0-rc3 local process CLI (V3 engine).
 
 Safe by default: read-only exploration and external-state drafts; no product-code
 mutation, native approvals, execution grants, model calls or CI/CD actions.
@@ -36,11 +36,11 @@ from agentflow_si.operations import mutation_preflight, git_scope_preview, class
 from agentflow_si.workflow import (evidence_impact, evidence_graph_draft, intent_preview,
     profile_exception_proposal, verification_plan, verification_resource_conflicts)
 
-VERSION='1.1.0-rc2'
+VERSION='1.1.0-rc3'
 
 
 def make_parser():
-    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.1.0-rc2 - work start/checkpoint/finish; not OS enforcement')
+    p=argparse.ArgumentParser(description='Agent Workflow Kit v1.1.0-rc3 - work start/checkpoint/finish; not OS enforcement')
     p.add_argument('--repo',required=True,help='Existing project folder')
     p.add_argument('--state-home',help='External local state root')
     sub=p.add_subparsers(dest='action',required=True)
@@ -50,16 +50,26 @@ def make_parser():
     resume=sub.add_parser('resume');resume.add_argument('query',nargs='?',default='');resume.add_argument('--compact',action='store_true')
     work=sub.add_parser('work',help='Everyday start/checkpoint/finish; legacy commands remain available')
     worksub=work.add_subparsers(dest='work_action',required=True)
-    for name in ('start','checkpoint','finish','history'):
+    for name in ('start','checkpoint','finish','history','sources'):
         examples={
-          'start':'--data - accepts a contract: analysis_level QUICK, work_type BUG/FEATURE/MAINTENANCE, objective, scope.functional, preserve, acceptance, verification_strategy. Returns decision_input_example; do not read implementation source for payloads.',
-          'checkpoint':'Decision JSON: {"contract_sha256":"FROM_START_OR_RESUME","expected_revision":1,"decision":{"choice":"APPROVED","source":"actual current-chat USER message"},"source_paths":["app.py"]}. Replace revision with the observed checkpoint revision, never guess. Saved decision automatically persists, reads back and rechecks; inspect decision_readback/prepatch_check, stop on BLOCKED/nonzero. Successful recheck returns only finish_input_example. No immediate duplicate readback/check is needed; --check revalidates after a gap/change. For new files use new_paths. Intentional next batch JSON: milestone HANDOFF, phase IMPLEMENTING, contract_sha256, observed expected_revision, source_paths, prepare_next_batch true, actual summary/completed/remaining/blockers/changed_paths/next_action. Reconcile scoped changes before refreshing observations; approval is not refreshed.',
+          'start':'JSON: analysis_level QUICK|STANDARD|DEEP, work_type BUG|FEATURE|MAINTENANCE, objective, scope.functional, preserve, acceptance, verification_strategy. STANDARD adds scenarios(list), impact(object), gaps(list). DEEP also needs risk_summary(string), evidence_sources(list), solution_challenge(object). Use contract-template --level DEEP for field shapes. Sibling repos: repositories=[{key,root:absolute Git root,write_paths:[explicit relative files],read_paths:[]}]. Direct CLI or stdin; do not read implementation source to discover payloads.',
+          'checkpoint':'Use --decision APPROVED --source-ref "actual USER message" --expected-revision N --contract-sha256 SHA [--source relative/file]. Alternatively JSON: {"contract_sha256":"FROM_START_OR_RESUME","expected_revision":1,"decision":{"choice":"APPROVED","source":"actual current-chat USER message"},"source_paths":["app.py"]}. Use the observed revision, never guess. Saves, reads back and rechecks automatically; inspect decision_readback/prepatch_check, stop on BLOCKED/nonzero. No immediate duplicate check; --check revalidates after a gap/change. Multi-repo contracts capture repositories automatically. For new legacy files use new_paths. Next intentional batch JSON: milestone HANDOFF, phase IMPLEMENTING, contract_sha256, expected_revision, source_paths (legacy), prepare_next_batch true, actual summary/completed/remaining/blockers/changed_paths/next_action. Reconcile changes first; approval is not refreshed.',
           'finish':'JSON: contract_sha256, expected_revision, source_paths, tested_source_hashes captured at test time, summary/completed/remaining/blockers/changed_paths/next_action, checks. Each check: kind (REPRODUCTION for bug), command, executed, exit_code, output_excerpt, status, covers [A1..,P1..]. Runs artifact check and saves verification plus handoff; no extra handoff/artifacts call required after success.',
-          'history':'Read-only paged checkpoint summaries. Use next_before as --before to continue.'}
+          'history':'Read-only paged checkpoint summaries. Use next_before as --before to continue.',
+          'sources':'Capture every declared repository/file immediately before tests. --output /OUTSIDE/artifacts/test-batch.json saves an immutable snapshot; finish accepts tested_sources_file. No tests are executed and no DB/product writes occur.'}
         cmd=worksub.add_parser(name,description=examples[name]);cmd.add_argument('topic');cmd.add_argument('--data',help='JSON file OUTSIDE product tree, or - for stdin; see description above')
+        cmd.add_argument('--verbose',action='store_true',help='Full output, selected before a mutation; normal output is concise')
         if name=='start':cmd.add_argument('--kind',choices=['change','question','investigate'],default='change')
-        if name=='checkpoint':cmd.add_argument('--check',action='store_true',help='Read-only recheck of the saved decision and sources before patch')
+        if name=='checkpoint':
+            cmd.add_argument('--check',action='store_true',help='Read-only recheck of the saved decision and sources before patch')
+            cmd.add_argument('--decision',choices=['APPROVED','REJECTED'])
+            cmd.add_argument('--source-ref',help='Actual current-chat USER decision reference; not an inferred approval')
+            cmd.add_argument('--expected-revision',type=int)
+            cmd.add_argument('--contract-sha256')
+            cmd.add_argument('--source',action='append',default=[],help='Explicit existing relative file; repeat for legacy single-repo tasks')
+            cmd.add_argument('--new-path',action='append',default=[],help='Explicit absent path for a legacy single-repo task')
         if name=='history':cmd.add_argument('--limit',type=int,default=5);cmd.add_argument('--before',type=int)
+        if name=='sources':cmd.add_argument('--output')
     setup=sub.add_parser('setup',help='Guidance plus external inventory and local Git exclude')
     setup.add_argument('--mode',choices=['strict','advisory'],default='strict');setup.add_argument('--apply',action='store_true');setup.add_argument('--upgrade',action='store_true');setup.add_argument('--data')
     setup.add_argument('--delegated-advisory',action='store_true',help='Preserve explicitly selected legacy H/D protocol; never a grant')
@@ -160,10 +170,36 @@ def process(args):
         if args.artifact_action=='inventory':return {'inventory':manager.inventory(),'read_only':True}
         return manager.check(data.get('product_paths'))
     if args.action=='work':
-        from .work import start,checkpoint,finish,history,recheck
+        from .work import start,checkpoint,finish,history,recheck,source_snapshot
         if args.work_action=='history':return history(repo,home,args.topic,args.limit,args.before)
-        if args.work_action=='checkpoint' and args.check:return recheck(repo,home,args.topic)
+        if args.work_action=='sources':
+            if args.data:raise StoreError('work sources takes --output, not --data')
+            return source_snapshot(repo,home,args.topic,args.output)
+        if args.work_action=='checkpoint' and args.check:
+            if args.data or args.decision or args.source_ref or args.expected_revision is not None or args.contract_sha256 or args.source or args.new_path:
+                raise StoreError('--check is read-only; do not combine with decision/data/source mutation flags')
+            return recheck(repo,home,args.topic)
         data=_work_data(args.data,repo)
+        if args.work_action=='checkpoint' and args.decision:
+            if args.data:raise StoreError('Choose --data or direct decision flags, not both')
+            data={'decision':{'choice':args.decision,'source':args.source_ref},
+                  'contract_sha256':args.contract_sha256,'expected_revision':args.expected_revision,
+                  'source_paths':args.source,'new_paths':args.new_path}
+        if args.work_action=='start':spec=data.get('contract',data)
+        else:
+            from .work import resolve
+            records=WorkflowRecords(repo,home,initialize=False)
+            spec=records.core.contract_revision(resolve(records,args.topic))['content']
+        if not isinstance(spec,dict):raise StoreError('contract: expected a JSON object')
+        from .sources import registry
+        roots=[Path(repo).resolve()]+[Path(r['root']) for r in registry(spec,repo)] if spec.get('repositories') else [Path(repo).resolve()]
+        if args.data and args.data!='-' and any(Path(args.data).expanduser().resolve().is_relative_to(root) for root in roots):
+            raise StoreError('Kit JSON must stay outside every product root; use --data -')
+        if args.work_action=='finish' and 'tested_sources_file' in data:
+            if 'tested_sources' in data:raise StoreError('Choose tested_sources or tested_sources_file, not both')
+            path=Path(data['tested_sources_file']).expanduser().resolve()
+            if not path.is_relative_to(records.store.state_dir/'artifacts'):raise StoreError('tested_sources_file must be in the returned artifact_directory')
+            data['tested_sources']=_read_json(str(path))
         if args.work_action=='start':return start(repo,home,args.topic,data,args.kind)
         if args.work_action=='checkpoint':return checkpoint(repo,home,args.topic,data)
         return finish(repo,home,args.topic,data)
@@ -330,7 +366,11 @@ def main(argv=None):
     parser=make_parser();args=parser.parse_args(argv)
     try:
         response=process(args)
-        print(json.dumps(response,indent=2,ensure_ascii=False,sort_keys=False))
+        shown=response
+        if args.action=='work' and args.work_action!='history' and not args.verbose and not (args.work_action=='sources' and not args.output):
+            from .presentation import work_result
+            shown=work_result(response)
+        print(json.dumps(shown,indent=2,ensure_ascii=False,sort_keys=False))
         if args.action in ('setup','artifacts') and response.get('status')=='BLOCKED':return 2
         if args.action=='work' and response.get('status')=='BLOCKED':return 2
         return 0
@@ -340,8 +380,11 @@ def main(argv=None):
         print(json.dumps(response,ensure_ascii=False),file=sys.stderr)
         return 2
     except (ValueError,StoreError,OSError,json.JSONDecodeError,InstallerError) as exc:
-        print(json.dumps({'error':type(exc).__name__,'message':str(exc),
-                          'write_authorized':False},ensure_ascii=False),file=sys.stderr)
+        from .presentation import error_hint
+        error={'error':type(exc).__name__,'message':str(exc),'write_authorized':False}
+        hint=error_hint(str(exc))
+        if hint:error['input_help']=hint
+        print(json.dumps(error,ensure_ascii=False),file=sys.stderr)
         return 2
 
 if __name__=='__main__':raise SystemExit(main())

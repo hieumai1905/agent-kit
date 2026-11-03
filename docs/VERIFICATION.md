@@ -18,6 +18,8 @@ Với từng acceptance và hành vi cần giữ, kiểm code/caller/test/output
 
 Kết quả `VERIFIED_REPORTED`, `PARTIAL_REPORTED`, `FAILED_REPORTED` chỉ đánh giá độ đầy đủ/nhất quán của báo cáo agent, KHÔNG xác thực test đã chạy, chấp thuận của người dùng hay chứng nhận bảo mật. `tested_source_hashes` phải được thu tại thời điểm kiểm thử, không lấy hash mới để gắn vào kết quả cũ. Helper không thực thi command trong JSON.
 
+Với contract.repositories, dùng work sources ngay trước test và tested_sources_file khi finish. Mọi write_paths/read_paths của mọi repo phải có mặt; scope digest/root/file phải khớp. Source coverage DECLARED_SCOPE_COMPLETE vẫn chỉ là footprint đã khai báo, không xác thực test hay toàn dependency. Legacy thiếu file đã đổi hoặc sibling phải là INCOMPLETE/UNKNOWN. Snapshot trước test rồi phát hiện file đổi sau test phải chạy lại phần ảnh hưởng, không gắn kết quả cũ vào snapshot mới.
+
 Nếu source hoặc contract đổi sau kiểm thử, chạy lại phần bị ảnh hưởng và cập nhật bằng chứng. Người dùng quyết định nghiệm thu; không tự chuyển canonical lifecycle sang completed cho đẹp. Commit/push/deploy là phạm vi riêng.
 
 Resume/final-review đọc verification gần nhất từ lịch sử PROGRESS, giữ binding của chính lần kiểm đó. Checkpoint tiến độ mới không xóa báo cáo và không làm mới hash kiểm thử cũ. Xem freshness riêng của reported_verification: CURRENT/STALE/UNBOUND/UNKNOWN; không dùng freshness của tiến độ để suy ra test cũ còn hiệu lực. Báo cáo thiếu hoặc save thất bại không tạo kết luận mới.

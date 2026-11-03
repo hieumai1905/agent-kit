@@ -138,8 +138,8 @@ class Artifacts:
             if not ignored: raise StoreError('Local exclude did not protect '+name+'; inspect negation rules')
         return {'path':str(p.resolve()),'changed':new!=old,'index_mutated':False,'hook_installed':False}
 
-    def check(self, product_paths=None):
-        inv=self.inventory()
+    def check(self, product_paths=None, *, inventory=None):
+        inv=inventory if inventory is not None else self.inventory()
         if inv is None:return {'status':'BLOCKED','scope':'UNAVAILABLE','reasons':['No artifact inventory; complete setup or register known artifacts'],'write_authorized':False}
         raw=_git(self.repo,'diff','--cached','--name-only','-z','--diff-filter=ACMRT','--no-renames')
         if raw is None:return {'status':'BLOCKED','scope':'UNREADABLE','reasons':['Cannot read INDEX changes'],'write_authorized':False}
@@ -156,20 +156,48 @@ class Artifacts:
         # classified as a kit log merely because both hash to the empty digest.
         fingerprints=set(inv.get('fingerprints',[]))-{hashlib.sha256(b'').hexdigest()};reasons=[];unknown=[]
         matches=[];unresolved=[]
+        # Hash equality requires equal byte length. Inspect bounded candidate
+        # blobs once; large unrelated logs/verification assets cannot match them.
+        blobs={};candidate_sizes=set();candidate_bytes=0
+        for location,names in [('INDEX',paths),('UNTRACKED_WORKTREE',untracked)]:
+            for name in names:
+                if location=='INDEX':blob=_git(self.repo,'show',':'+name)
+                else:
+                    p=self.repo/name
+                    if p.is_symlink() or not p.resolve().is_relative_to(self.repo):
+                        reasons.append(name+': untracked symlink/outside path needs review');continue
+                    if not p.is_file() or p.stat().st_size>8*1024*1024:
+                        reasons.append(name+': untracked content unavailable/too large to inspect');continue
+                    with p.open('rb') as source:blob=source.read(8*1024*1024+1)
+                    if len(blob)>8*1024*1024:
+                        reasons.append(name+': content grew beyond inspection limit');continue
+                if blob is None:
+                    reasons.append(name+': staged blob unreadable/too large');continue
+                candidate_bytes+=len(blob)
+                if candidate_bytes>64*1024*1024:
+                    return {'status':'BLOCKED','scope':'TRUNCATED','reasons':['Candidate inspection exceeded 64 MiB; narrow scope'],'read_only':True,'write_authorized':False}
+                blobs[(location,name)]=blob;candidate_sizes.add(len(blob))
+        scanned=0;hashed=0;total=0
         if paths or untracked:
             # Include current children of registered runtime roots, including files
             # generated after setup; bounded scans must never silently pass.
-            seen=set();total=0
+            seen=set()
             for item in inv['items']:
                 root=Path(item['path'])
                 candidates=root.rglob('*') if root.is_dir() else [root]
                 for p in candidates:
                     if '.git' in p.parts or '__pycache__' in p.parts or p.is_symlink() or not p.is_file():continue
                     if str(p) in seen:continue
-                    seen.add(str(p));total+=p.stat().st_size
-                    if len(seen)>500 or total>64*1024*1024:
+                    seen.add(str(p));size=p.stat().st_size;scanned+=1
+                    if len(seen)>5000:
+                        return {'status':'BLOCKED','scope':'TRUNCATED','reasons':['Artifact metadata scan exceeded 5000 files; narrow registered roots'],'read_only':True,'write_authorized':False}
+                    if not size or size not in candidate_sizes:continue
+                    total+=size
+                    if total>64*1024*1024:
                         return {'status':'BLOCKED','scope':'TRUNCATED','reasons':['Artifact-root scan exceeded bounds; review inventory before commit'],'read_only':True,'write_authorized':False}
-                    if p.stat().st_size:fingerprints.add(hashlib.sha256(p.read_bytes()).hexdigest())
+                    with p.open('rb') as source:raw=source.read(size+1)
+                    if len(raw)!=size: return {'status':'BLOCKED','scope':'CHANGED_DURING_READ','reasons':['Registered artifact changed during observation; reconcile'],'read_only':True,'write_authorized':False}
+                    fingerprints.add(hashlib.sha256(raw).hexdigest());hashed+=1
         # Inventory paths must remain untracked, even when unchanged in the index.
         for name in known:
             tracked=_git(self.repo,'ls-files','--stage','--',name)
@@ -201,22 +229,19 @@ class Artifacts:
                 reasons.append(name+': content matches kit; origin unresolved, classify the exact product content before proceeding')
             matches.append({'path':name,'location':location,'kind':kind,'basis':basis})
         for name in paths:
-            blob=_git(self.repo,'show',':'+name)
-            if blob is None:reasons.append(name+': staged blob unreadable/too large');continue
+            blob=blobs.get(('INDEX',name))
+            if blob is None:continue
             inspect_content(name,blob,'INDEX')
             if product_paths is not None and name not in product_paths:unknown.append(name)
         for name in untracked:
-            p=self.repo/name
-            if p.is_symlink() or not p.resolve().is_relative_to(self.repo):
-                reasons.append(name+': untracked symlink/outside path needs review');continue
-            if not p.is_file() or p.stat().st_size>8*1024*1024:
-                reasons.append(name+': untracked content unavailable/too large to inspect');continue
-            blob=p.read_bytes()
+            blob=blobs.get(('UNTRACKED_WORKTREE',name))
+            if blob is None:continue
             inspect_content(name,blob,'UNTRACKED_WORKTREE')
         if unknown:reasons.append('Paths outside classified product scope: '+', '.join(unknown))
         return {'status':'BLOCKED' if reasons else 'CLEAR','scope':'INDEX_BLOBS_UNTRACKED_AND_REGISTERED_ROOTS',
                 'reasons':reasons,'checked_index_paths':paths,'checked_untracked_paths':untracked,'inventory_items':len(inv['items']),
                 'content_matches':matches,'unresolved_paths':list(dict.fromkeys(unresolved)),
+                'scan_stats':{'metadata_files':scanned,'hashed_files':hashed,'hashed_bytes':total,'candidate_bytes':candidate_bytes},
                 'read_only':True,'write_authorized':False,'enforced_commit_gate':False,
                 'limits':['Agent-reported inventory/product origin is not authenticated; transformed/unregistered copies need review','No hook or OS confinement']}
 
