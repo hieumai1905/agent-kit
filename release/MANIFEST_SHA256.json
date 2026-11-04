@@ -7,7 +7,7 @@
   "sha256": {
     ".gitignore": "938af5749b56cdfc770e1026f94185e6c6fe1c526099a27f2c892a31fa67c379",
     "BOOTSTRAP.md": "bf4e4f72bc5e99015d7aadf5532a96380c2effd377ee67324b3812c0bb38b0ca",
-    "INIT_PROMPT.md": "fe1a18706978b2d4f3c14dd5fa308c21ef345e43004c1ea434f7f07486add420",
+    "INIT_PROMPT.md": "4516234b81e7ad86fa04c55035f89ef533b41602f956ea85cd4ff6c6c0945d31",
     "LICENSE": "e1ed20a20de83a92f2aa332aee0ac70585ac17536b96ea556f969d0d21cfe589",
     "README.md": "5af4afc3512cda592f5895ca0c57e6b167ebdee4d79d2e4fed3c9b04682637d1",
     "agentflow_core/__init__.py": "1a1b80e9865f5ac7461dcc5100397c635c12f6387ae5860c8c38aaa2de733371",
