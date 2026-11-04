@@ -5,6 +5,7 @@ records PASS, stages Git or launches processes other than read-only Git queries.
 """
 from __future__ import annotations
 import os
+import hashlib
 from pathlib import Path
 import subprocess
 from .navigator import TaskNavigator, resume_query
@@ -32,31 +33,34 @@ def git_snapshot(repo)->dict:
     """Bounded Git metadata: no diff content, no secrets, no write claims."""
     root=Path(repo).expanduser().resolve(strict=True)
     if not root.is_dir():raise ValueError('Not a repository directory')
-    status=_git(root,'status','--porcelain=v1','-z','--untracked-files=normal')
+    status=_git(root,'status','--porcelain=v1','-z','--untracked-files=all')
     if status is None:
         return {'git_available':False,'read_only':True,'write_authorized':False,
                 'warning':'Git not available or status failed; no clean tree claim'}
     head=_git(root,'rev-parse','--verify','HEAD')
     branch=_git(root,'symbolic-ref','--short','HEAD')
+    if status and not status.endswith(b'\0'):
+        return {'git_available':False,'status':'PARSE_ERROR','changes_truncated':True,
+                'read_only':True,'write_authorized':False,'warning':'Incomplete porcelain stream'}
     tokens=status.split(b'\0');idx=0;entries=[]
     while idx<len(tokens):
         row=tokens[idx];idx+=1
         if not row:break
         if len(row)<4 or row[2:3]!=b' ':
-            return {'git_available':True,'status':'PARSE_ERROR','read_only':True,
+            return {'git_available':False,'status':'PARSE_ERROR','read_only':True,
                     'write_authorized':False,'warning':'Unexpected porcelain record'}
         xy=row[:2].decode('ascii',errors='replace')
         filename=row[3:].decode('utf-8',errors='replace')
         previous=None
         if 'R' in xy or 'C' in xy:
             if idx>=len(tokens) or not tokens[idx]:
-                return {'git_available':True,'status':'PARSE_ERROR','read_only':True,'write_authorized':False}
+                return {'git_available':False,'status':'PARSE_ERROR','read_only':True,'write_authorized':False}
             previous=tokens[idx].decode('utf-8',errors='replace');idx+=1
         entries.append({'xy':xy,'path':filename,'previous':previous})
-        if len(entries)>=120:break
     return {'git_available':True,'head':head.decode().strip() if head else None,
             'branch':branch.decode().strip() if branch else '(detached/unborn)',
-            'worktree_changes':entries,'changes_truncated':len(entries)>=120,
+            'worktree_changes':entries,'changes_truncated':False,
+            'changes_count':len(entries),'status_sha256':hashlib.sha256(status).hexdigest(),
             'read_only':True,'write_authorized':False,
             'warning':'Status is a snapshot, not a lock. Recheck before any provider write.'}
 

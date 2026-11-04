@@ -1,62 +1,46 @@
-# Agent Workflow Kit
+# Agent Workflow Kit v1.1.0 — bản gọn
 
-Workflow cho coding agent trong dự án hiện tại: **hiểu việc → contract ngắn → duyệt → sửa và kiểm chứng → bàn giao**.
-
-[MIT License](LICENSE) · Python 3.11+ · Git · **v1.1.0-slim-candidate.2 — bản thử**
+Workflow dùng với coding agent trong thư mục dự án hiện tại: hiểu yêu cầu, giữ đúng phạm vi đã duyệt, sửa code, kiểm thử và lưu tiến độ. Agent tự nhận identity của phiên; người dùng giao việc bình thường, không quản lý task ID, hash hoặc session.
 
 ## Bắt đầu
 
-Mở agent tại thư mục dự án rồi dán prompt trong [INIT_PROMPT.md](INIT_PROMPT.md). Agent clone đúng phiên bản ra ngoài dự án, kiểm manifest, preview/setup và đọc lại AGENTS.md/CLAUDE.md để áp dụng workflow. **Thư mục đang làm việc khi nhận prompt là đích mặc định.** Setup giữ luật riêng, backup, state/history và các thay đổi đang có.
+Copy toàn bộ khối trong [INIT_PROMPT.md](INIT_PROMPT.md) và gửi vào chat của dự án muốn dùng. Prompt tự clone tag `v1.1.0` ra ngoài repo, xác minh commit/manifest, setup ADVISORY, backup/nâng cấp block kit trong `AGENTS.md` và `CLAUDE.md`, rồi đọc lại hướng dẫn để áp dụng ngay trong chat đó.
 
-Prompt chỉ áp dụng khi người dùng chủ động gửi vào chat cần setup. Việc phát hành không tự nâng cấp hoặc điều khiển các chat đang chạy. Cách nâng cấp tại điểm dừng an toàn: [BOOTSTRAP.md](BOOTSTRAP.md).
+Mặc định là thư mục đang làm việc lúc bắt đầu. Setup chỉ áp dụng cho chat/dự án được chỉ định; không tự nâng cấp chat khác hoặc sửa code sản phẩm. Sau `SETUP_READY`, giao việc như bình thường. Một yêu cầu rõ ràng đã được duyệt không cần hỏi lại cùng quyền đó.
 
-Có thể [tải ZIP của tag](https://github.com/hieumai1905/agent-kit/archive/refs/tags/v1.1.0-slim-candidate.2.zip) rồi setup thủ công:
+## Luồng làm việc
+
+```text
+begin → sửa code → verify → handoff
+                    ↓ test lỗi
+                  retry → sửa → verify
+```
+
+- Việc nhỏ dùng contract QUICK; bằng chứng CODE/CLI/UI được xác định từ yêu cầu thật trước approval. CLI không tự phát sinh gate Chrome; UI vẫn cần kiểm chứng thực tế.
+- Helper trả receipt ngắn và `next_command`, tự mang các binding. Identity lấy từ provider; không truyền session ID trong luồng thường.
+- Nghiên cứu trả lời trực tiếp. Nếu cần lưu context, giữ một note riêng của chat trong artifact directory. Structured brief chỉ dùng cho triển khai nhiều mốc đã duyệt.
+- `work context` cho resume; `work pause` lưu tiến độ và nhả writer ở điểm an toàn. Một repo có một writer hợp tác; không tự takeover.
+
+[Cách dùng và payload](docs/QUICKSTART.md) · [Setup/upgrade](BOOTSTRAP.md) · [Recovery và API nâng cao](docs/RECOVERY.md)
+
+## Tệp dự án và dữ liệu kit
+
+Runtime clone, state, backup, payload, note, log và receipt của kit ở ngoài cây repo dự án. Chỉ guidance kit-only được bảo vệ bằng local exclude; không sửa `.gitignore`/hooks để che dữ liệu. Product regression tests vẫn thuộc code dự án.
+
+Setup giữ nguyên task/history, luật riêng ngoài managed blocks và thay đổi chưa commit. Tracked/mixed/customized guidance hoặc override xung đột phải được đối chiếu; không xóa luật, force-add, tự unstage/untrack hay reset để đi tiếp. Kit có kiểm tra artifacts và INDEX nhưng không tự stage/commit/push/deploy hoặc đổi dependency/model/settings.
+
+## Bằng chứng và giới hạn
+
+Bản ứng viên nền đạt 482 ca hồi quy, 25 ca được bỏ qua theo phạm vi; 17 ca JavaScript và 31 bước smoke. Chỉnh hướng dẫn cuối đã qua 44 ca liên quan và ba kiểm tra cuối về word budget/upgrade.
+
+Ca CLI đối chứng hoàn tất trong khoảng 121 giây với bằng chứng CLI đầy đủ; bản trước chưa hoàn tất trong giới hạn 240 giây. Ca phân tích vẫn tăng usage do dùng brief API thừa; hướng dẫn cuối đã bỏ đường dùng đó, nhưng chưa đo lại bằng model. Vì vậy **chưa có kết luận giảm usage chung hay agent hiểu việc tốt hơn**. Các ca giảm lược/unit checks không thay nghiệm thu ứng dụng/UI thật.
+
+ADVISORY và writer là cơ chế hợp tác, không phải khóa ghi hệ điều hành hoặc xác thực approval. Runtime cũ, API nâng cao và công cụ ghi tùy ý không tự tham gia writer. Passing tests không có nghĩa đã được phép publish.
+
+## Kiểm tra gói
 
 ```sh
 python3 -B /ABS/KIT/tools/verify_release.py
-python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT setup --mode advisory --upgrade
-python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT setup --mode advisory --upgrade --apply
 ```
 
-Preview trước apply. Tracked/mixed guidance, block tùy biến, artifact trong INDEX hoặc override chưa giải quyết phải BLOCKED; không tự untrack/unstage, ignore rộng hoặc ghi đè luật riêng. SETUP_LOCAL_READY chưa chứng minh agent đã áp dụng hướng dẫn trong session.
-
-## Giao việc bình thường
-
-> Sửa lỗi [triệu chứng], kết quả mong muốn [kết quả]. Giữ nguyên [ràng buộc]. Không commit/push/deploy.
-
-Agent đọc phần liên quan và trình contract ngắn: outcome, scope, ví dụ phải sửa, ví dụ phải giữ và checks. Bạn duyệt một lần cho đúng phạm vi. Hỏi/khảo sát/đề xuất trả lời trực tiếp, chưa tạo metadata triển khai. Không tự biến giả định chưa xác nhận thành yêu cầu.
-
-Luồng thường dành cho một batch trong một Git root:
-
-| Mốc | Helper thực hiện |
-|---|---|
-| `work begin` | Lưu quyết định USER đã duyệt, đọc lại và kiểm trước patch; trả receipt |
-| `work verify` | Chạy checks đã khai báo, lưu log/exit và binding tested sources |
-| `work handoff` | Kiểm scope/freshness/artifacts/INDEX và lưu kết quả cùng bàn giao |
-
-Helper mang IDs/revisions/hashes; người dùng không nhập JSON/IDs. Agent dùng receipt mới nhất. Xem [SLIM.md](docs/SLIM.md) để biết flags và ví dụ. Nhiều repo, refinement/batch tiếp, migration, security/permissions, billing, delegation hoặc handoff dài dùng API nâng cao trong [USAGE.md](docs/USAGE.md); không bắt task nhỏ đọc toàn bộ quy trình.
-
-Không hỏi lại quyền đã duyệt trong scope. Không chuyển approval/PASS cũ sang contract/source mới. Unit/mock không chứng minh UI thật; bàn giao phải nói rõ mức kiểm chứng và phần còn thiếu. Handoff thành công không tạo báo cáo/checkpoint trùng.
-
-## File vận hành và giới hạn
-
-Clone/runtime/state/receipt/log/report của kit nằm ngoài product tree. Chỉ hai guidance kit-only chưa tracked được đặt tại root bằng Git local exclude hẹp. Product regression tests vẫn thuộc code sản phẩm. Checker đọc INDEX blobs và marker/fingerprint/state; receipt/baseline vẫn được nhận diện khi đổi định dạng JSON, log kit có marker riêng. Không tự sửa product .gitignore/hooks/global config hoặc bỏ tracked files để lách kiểm tra.
-
-Đây là **ADVISORY**, không phải OS sandbox, xác thực người gửi hay khóa cưỡng chế mọi commit. State/receipt không cấp quyền. Commands chạy theo quyền hiện có; tests là executable code. Baseline chỉ bao phủ Git-visible files và các quan sát có giới hạn. Mapping checks→acceptance/preserve vẫn cần review nghĩa. Không tự cài dependencies, đổi model/settings, thêm agents hoặc stage/commit/push/deploy.
-
-`VERIFIED_REPORTED` là mức đủ của báo cáo, không phải trusted verification. CLI nâng cao/schema state/history được giữ; gỡ guidance không xóa lịch sử. Một writer, không tự tạo/gia hạn delegation. Không thêm model/API calls vào runtime.
-
-## Mức kiểm thử
-
-Bản rút gọn qua sàng lọc hai ca lỗi lịch sử: 21/21 và 9/9 tiêu chí code cùng regression liên quan. Ở một cặp hoàn tất cùng mức core quality, helper giảm 11→3 lần gọi; thời gian giảm khoảng 15%, output giảm khoảng 15%, nhưng uncached input tăng khoảng 17%. Cặp còn lại có control timeout nên không dùng tính phần trăm tiết kiệm.
-
-**Chưa xác nhận giảm tổng usage/chi phí, chưa chạy đủ vòng đối chứng lặp lại và chưa nghiệm thu UI thật.** Đây là bản thử, không phải kết luận agent quyết định tốt hơn ở mọi dự án. Trace/snapshot dự án và dữ liệu kiểm thử riêng không thuộc gói người dùng.
-
-```sh
-python3 -B /ABS/KIT/tools/verify_release.py
-python3 -B /ABS/KIT/tools/practical_smoke.py
-```
-
-Smoke dùng fixture tạm, không gọi model hay sửa dự án thật. [BOOTSTRAP.md](BOOTSTRAP.md) và [USAGE.md](docs/USAGE.md) hướng dẫn nâng cấp/gỡ/rollback. Debug/continuity chỉ đọc khi cần: [VERIFICATION.md](docs/VERIFICATION.md), [CONTINUITY.md](docs/CONTINUITY.md).
-
-Copyright © 2026 hieumai1905. [MIT License](LICENSE).
+Manifest kiểm tra tính toàn vẹn của gói, không phải chữ ký nhà phát hành. Phiên bản: `v1.1.0`. [MIT License](LICENSE).

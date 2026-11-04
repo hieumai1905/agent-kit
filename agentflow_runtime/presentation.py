@@ -5,8 +5,9 @@ def work_result(value):
     keys=('action','task_id','record_id','revision','contract_sha256','readback_matches',
           'saved','no_changes','status','artifact_directory','handoff_saved','handoff_revision',
           'auto_complete','source_snapshot_file','scope_sha256','repositories','files','receipt','checks','reasons',
-          'existing_task_lookup_performed',
-          'read_only','read_only_product_and_db','next_action','trusted','write_authorized')
+          'existing_task_lookup_performed','reason_code','checks_reused','log_files','project_context','brief','brief_revision',
+          'session_ref','title','stage','source_state','writer',
+          'read_only','read_only_product_and_db','next_action','next_command','trusted','write_authorized')
     result={key:value[key] for key in keys if key in value}
     if 'binding' in value:result['binding']=value['binding']
     if value.get('input_derivations'):result['input_derivations']=value['input_derivations']
@@ -23,7 +24,7 @@ def work_result(value):
         result['prepatch_check']={k:check[k] for k in ('status','reasons','current_chat_decision_must_be_revalidated','write_authorized') if k in check}
     if 'verification' in value:
         v=value['verification']
-        result['verification']={k:v[k] for k in ('reported_verdict','coverage','missing_criteria','incomplete_checks','failed_checks','source_coverage','user_workflow','trusted','write_authorized') if k in v}
+        result['verification']={k:v[k] for k in ('reported_verdict','coverage','missing_criteria','incomplete_checks','failed_checks','source_coverage','user_workflow','evidence_summary','trusted','write_authorized') if k in v}
     if 'artifact_check' in value:
         a=value['artifact_check'];result['artifact_check']={k:a[k] for k in ('status','reasons','unresolved_paths') if k in a}
     if 'routing' in value:
@@ -31,7 +32,17 @@ def work_result(value):
     if isinstance(value.get('source_coverage'),dict):
         result['source_coverage']={k:value['source_coverage'][k] for k in ('status','coverage','repositories','reason') if k in value['source_coverage']}
     # No mutation rerun is needed to expand output: resume/handoff are read-only.
-    result['details']='Read saved details with resume/handoff when needed; --verbose must be chosen before a mutation, never retry merely for verbosity'
+    normal='receipt' in value or value.get('status')=='HANDOFF_SAVED'
+    if normal:
+        from pathlib import Path
+        if result.get('receipt'):result['receipt']=Path(result['receipt']).name
+        for key in ('task_id','record_id','revision','contract_sha256','handoff_revision','session_ref'):
+            result.pop(key,None)
+        if not result.get('project_context'):result.pop('project_context',None)
+        if isinstance(result.get('decision_readback'),dict):
+            result['decision_readback']={k:v for k,v in result['decision_readback'].items() if k in ('kind','decision')}
+    else:
+        result['details']='Read full records only for a missing fact; never repeat a mutation for verbosity'
     return result
 
 

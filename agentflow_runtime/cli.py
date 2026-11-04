@@ -36,7 +36,7 @@ from agentflow_si.operations import mutation_preflight, git_scope_preview, class
 from agentflow_si.workflow import (evidence_impact, evidence_graph_draft, intent_preview,
     profile_exception_proposal, verification_plan, verification_resource_conflicts)
 
-VERSION='1.1.0-slim-candidate.2'
+VERSION='1.1.0'
 
 
 def make_parser():
@@ -46,12 +46,13 @@ def make_parser():
     sub=p.add_subparsers(dest='action',required=True)
     sub.add_parser('version'); sub.add_parser('doctor');sub.add_parser('capabilities')
     sub.add_parser('scan');sub.add_parser('tasks');sub.add_parser('profile');sub.add_parser('setup-preview')
-    sub.add_parser('repo-status')
+    gitview=sub.add_parser('repo-status');gitview.add_argument('--verbose',action='store_true')
     resume=sub.add_parser('resume');resume.add_argument('query',nargs='?',default='');resume.add_argument('--compact',action='store_true')
-    work=sub.add_parser('work',help='Everyday start/checkpoint/finish; legacy commands remain available')
+    work=sub.add_parser('work',help='Begin/verify/handoff, with retry for repairs; advanced APIs retained')
     worksub=work.add_subparsers(dest='work_action',required=True)
     begin=worksub.add_parser('begin',help='After actual USER approval: save/read back decision and return a receipt; no patch')
     begin.add_argument('topic');begin.add_argument('--data',help='Approved contract, approval_source and checks JSON, or - for stdin')
+    begin.add_argument('--session',help=argparse.SUPPRESS) # legacy fallback; environment always wins
     begin.add_argument('--source-ref',help='Actual USER approval reference in this chat')
     begin.add_argument('--objective');begin.add_argument('--path',action='append',default=[])
     begin.add_argument('--accept',action='append',default=[]);begin.add_argument('--preserve',action='append',default=[])
@@ -59,12 +60,24 @@ def make_parser():
     begin.add_argument('--covers',help='Explicit reported check mapping, e.g. A1,P1; not inferred semantic coverage')
     begin.add_argument('--type',choices=['BUG','FEATURE','MAINTENANCE'],default='BUG')
     begin.add_argument('--scenario',help='Concrete interaction path, if relevant; command-only checks leave actual UI unverified')
+    begin.add_argument('--verification-target',choices=['CODE','CLI','UI'],help='Evidence scope from actual approved behavior; never remove a UI requirement')
+    begin.add_argument('--cli-entrypoint',help='Declared relative CLI script for direct actual-CLI checks in --data plans')
     verify=worksub.add_parser('verify',help='Run predeclared checks and bind logs to tested sources')
     verify.add_argument('topic',help='Latest receipt path');verify.add_argument('--timeout',type=int,default=300)
     handoff=worksub.add_parser('handoff',help='Save actual checks and handoff without manual metadata')
     handoff.add_argument('topic',help='Verification receipt path');handoff.add_argument('--summary',required=True)
     handoff.add_argument('--remaining',action='append',default=[])
-    for cmd in (begin,verify,handoff):cmd.add_argument('--verbose',action='store_true')
+    retry=worksub.add_parser('retry',help='Persist/recheck a same-scope repair batch; no copied bindings or advanced payload')
+    retry.add_argument('topic',help='Latest receipt path');retry.add_argument('--summary',required=True)
+    goal=worksub.add_parser('brief',help='Optional durable project outcome for several milestones; never an approval')
+    goal.add_argument('--data',help='Reviewed requirements/examples JSON, or - for stdin; omit to read')
+    goal.add_argument('--expected-revision',type=int,default=0)
+    goal.add_argument('--verbose',action='store_true')
+    pause=worksub.add_parser('pause',help='Save progress and release the cooperative writer at a safe point')
+    pause.add_argument('topic',nargs='?',help='Latest receipt; omit only to reconcile a dead preparation process owned by this chat');pause.add_argument('--summary',required=True);pause.add_argument('--verbose',action='store_true')
+    ctx=worksub.add_parser('context',help='Read this chat milestone, requirements and next action without searching other tasks')
+    ctx.add_argument('--session');ctx.add_argument('--receipt');ctx.add_argument('--verbose',action='store_true')
+    for cmd in (begin,verify,handoff,retry):cmd.add_argument('--verbose',action='store_true')
     for name in ('start','checkpoint','finish','history','sources'):
         examples={
           'start':'JSON: analysis_level QUICK|STANDARD|DEEP, work_type BUG|FEATURE|MAINTENANCE, objective, scope.functional, preserve, acceptance, verification_strategy. STANDARD needs scenario/impact facts and gaps(list); usage_scenario can supply the missing scenarios/declared-scope inventory without duplicate input. Explicit invalid fields are not overwritten. DEEP also needs risk_summary(string), evidence_sources(list), solution_challenge(object). Use contract-template --level DEEP for field shapes. Sibling repos: repositories=[{key,root:absolute Git root,write_paths:[explicit relative files],read_paths:[]}]. Direct CLI or stdin; do not read implementation source to discover payloads.',
@@ -185,26 +198,37 @@ def process(args):
         if args.artifact_action=='inventory':return {'inventory':manager.inventory(),'read_only':True}
         return manager.check(data.get('product_paths'))
     if args.action=='work':
-        if args.work_action in ('begin','verify','handoff'):
+        if args.work_action=='brief':
+            from . import brief
+            records=WorkflowRecords(repo,home,initialize=False)
+            if args.data:return brief.save(records,_work_data(args.data,repo),args.expected_revision)
+            return {'status':'BRIEF_READ','project_context':brief.view(records,{}),'read_only':True,'write_authorized':False}
+        if args.work_action in ('begin','verify','handoff','retry','pause','context'):
             from . import slim
+            if args.work_action=='context':return slim.context(repo,home,args.session,args.receipt)
+            if args.work_action=='pause':return slim.pause(repo,home,args.topic,args.summary)
             if args.work_action=='verify':return slim.verify(repo,home,args.topic,args.timeout)
             if args.work_action=='handoff':return slim.handoff(repo,home,args.topic,args.summary,args.remaining)
+            if args.work_action=='retry':return slim.retry(repo,home,args.topic,args.summary)
             if args.data:
-                if any((args.source_ref,args.objective,args.path,args.accept,args.preserve,args.test,args.covers,args.scenario)):
+                if any((args.source_ref,args.objective,args.path,args.accept,args.preserve,args.test,args.covers,args.scenario,args.verification_target,args.cli_entrypoint)):
                     raise StoreError('Choose --data or short contract flags, not both')
                 data=_work_data(args.data,repo)
             else:
                 import shlex
                 if not args.test:raise StoreError('Begin needs an existing project --test command')
-                contract={'analysis_level':'STANDARD' if args.scenario else 'QUICK','work_type':args.type,
+                contract={'analysis_level':'QUICK','work_type':args.type,
                     'objective':args.objective,'scope':{'functional':args.path},'acceptance':args.accept,
                     'preserve':args.preserve,'verification_strategy':[args.test],
                     'repositories':[{'key':'project','root':str(Path(repo).resolve()),'write_paths':args.path,'read_paths':[]}],
                     'gaps':[]}
                 if args.scenario:contract['usage_scenario']=args.scenario
+                if args.verification_target:contract['verification_target']=args.verification_target
+                if args.cli_entrypoint:contract['cli_entrypoint']=args.cli_entrypoint
                 data={'contract':contract,'approval_source':args.source_ref,
                       'checks':[{'argv':shlex.split(args.test),'kind':'REPRODUCTION' if args.type=='BUG' else 'REGRESSION',
                                  'covers':args.covers.split(',') if args.covers else []}]}
+            if args.session:data['session_ref']=args.session
             return slim.begin(repo,home,args.topic,data)
         from .work import start,checkpoint,finish,history,recheck,source_snapshot
         if args.work_action=='history':return history(repo,home,args.topic,args.limit,args.before)
@@ -266,7 +290,7 @@ def process(args):
     if args.action=='si-test-footprints':return verification_resource_conflicts(_read_json(args.json_file))
     if args.action=='si-release-doctor':
         return release_readiness(repo,home,observations=_read_json(args.observations_json) if args.observations_json else None)
-    if args.action=='version':return {'version':VERSION,'working_revision':'SLIM-ISOLATED-CANDIDATE-1',
+    if args.action=='version':return {'version':VERSION,'working_revision':'COMPACT-1.1.0',
                                      'release_class':'PRACTICAL_ADVISORY_RELEASE_NOT_SECURITY_CERTIFIED'}
     if args.action=='repo-status':return git_snapshot(repo)
     if args.action=='resume':
@@ -403,6 +427,9 @@ def main(argv=None):
     try:
         response=process(args)
         shown=response
+        if args.action=='repo-status' and not args.verbose:
+            entries=response.get('worktree_changes',[])
+            shown={**response,'worktree_changes':entries[:10],'display_truncated':len(entries)>10}
         if args.action=='work' and args.work_action!='history' and not args.verbose and not (args.work_action=='sources' and not args.output):
             from .presentation import work_result
             shown=work_result(response)

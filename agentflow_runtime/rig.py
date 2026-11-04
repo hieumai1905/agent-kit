@@ -65,6 +65,10 @@ def analyze_readiness(contract:dict)->dict:
     broad=any('/' in text and not re.search(r'\.[a-z0-9]{1,8}(?:$|[: )])',text) for text in relevant)
     effective='DEEP' if risk_alert else 'STANDARD' if declared=='QUICK' and broad else declared
     blockers=[]; warnings=[]
+    from .evidence_target import target
+    from agentflow_core import StoreError
+    try:target(contract)
+    except StoreError as exc:blockers.append(str(exc))
     if not meaningful(contract.get('objective')):
         blockers.append('Missing meaningful objective')
     if 'usage_scenario' in contract and not meaningful(contract['usage_scenario']):

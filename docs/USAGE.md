@@ -1,4 +1,4 @@
-# API nâng cao — slim candidate.2
+# API nâng cao — v1.1.0
 
 Trong ứng viên slim, luồng thường dùng [SLIM.md](SLIM.md). Phần dưới giữ API nâng cao và tương thích state/history cũ; không cần đọc hết cho một task nhỏ đã rõ.
 

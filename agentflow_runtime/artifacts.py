@@ -248,6 +248,17 @@ class Artifacts:
 
 
 def setup(repo,home,mode,apply=False,upgrade=False,classifications=None,*,delegated=False):
+    if not apply:return _setup(repo,home,mode,False,upgrade,classifications,delegated=delegated)
+    from . import coordination
+    rec=WorkflowRecords(repo,home)
+    try:token=coordination.claim(rec,coordination.session(),'Guidance setup/upgrade')
+    except StoreError as exc:
+        return {'status':'BLOCKED','reasons':[str(exc)],'applied':False,'write_authorized':False}
+    try:return _setup(repo,home,mode,True,upgrade,classifications,delegated=delegated)
+    finally:coordination.release(rec,token)
+
+
+def _setup(repo,home,mode,apply=False,upgrade=False,classifications=None,*,delegated=False):
     from .installer import GuidanceInstaller
     manager=Artifacts(repo,home)
     plan=manager.guidance_plan(classifications)

@@ -107,7 +107,7 @@ Follow its decision-quality, approval, verification and local-only rules in this
     return {'AGENTS.md':agent,'CLAUDE.md':claude}
 
 
-def render(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False,
+def _slim2(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False,
            legacy_rc3=False, legacy_rc4=False):
     if legacy_rc1 or legacy_rc2 or legacy_rc3 or legacy_rc4:
         return _rc4(command, mode, delegated, legacy_rc1=legacy_rc1,
@@ -141,3 +141,66 @@ Read and follow the managed block in AGENTS.md (NOT ENFORCED). Preserve all proj
 {end}
 '''
     return {'AGENTS.md': agent, 'CLAUDE.md': claude}
+
+
+def _compact3(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False,
+           legacy_rc3=False, legacy_rc4=False, legacy_slim2=False):
+    old = _slim2(command, mode, delegated, legacy_rc1=legacy_rc1,
+                 legacy_rc2=legacy_rc2, legacy_rc3=legacy_rc3, legacy_rc4=legacy_rc4)
+    if legacy_rc1 or legacy_rc2 or legacy_rc3 or legacy_rc4 or legacy_slim2:
+        return old
+    agent = old['AGENTS.md']
+    agent = agent.replace(
+        "Do not turn an unconfirmed edge case into a requirement.",
+        "Do not turn an unconfirmed edge case into a requirement. Keep approved terms/examples stable; distinguish the user's assistant from similarly named components. For multiple milestones, attach a brief at begin: requirements/USER sources, examples, preservation, open questions; declare addresses. Show deferred requirements at handoff. Mapping is not semantic proof.")
+    agent = agent.replace(
+        "BLOCKED/nonzero means stop. After a gap or unexpected change, reconcile before effects; never blindly retry a conflict.",
+        "TESTS_FAILED means inspect the returned logs, use `work retry RECEIPT --summary REASON` before the in-scope repair, then verify again. Other BLOCKED/nonzero results require reconciliation before effects; never blindly retry a conflict. Repeated verify on identical tested sources reuses evidence.")
+    agent = agent.replace('One writer. Preserve unrelated changes.',
+        'One cooperative writer per repo. Busy requires its owner’s safe handoff/pause; never take over. `work pause RECEIPT --summary REASON` saves progress before releasing it.')
+    agent = agent.replace('On resume use `resume "specific topic" --compact`; load details only for an actual ambiguity or missing fact.',
+        'Resume this chat with `work context` or `--receipt PATH`; use legacy resume only for old tasks.')
+    agent = agent.replace('Begin takes the approved short contract/checks, saves the decision, reads it back and rechecks before returning a receipt. The helper carries IDs, revisions and hashes; do not copy them manually.',
+        'Begin saves/readbacks/rechecks the approved scope and returns a receipt carrying bindings; do not copy IDs/hashes.')
+    return {**old, 'AGENTS.md':agent}
+
+
+def render(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False,
+           legacy_rc3=False, legacy_rc4=False, legacy_slim2=False, legacy_compact3=False,
+           legacy_compact4=False):
+    if legacy_rc1 or legacy_rc2 or legacy_rc3 or legacy_rc4 or legacy_slim2 or legacy_compact3:
+        return _compact3(command,mode,delegated,legacy_rc1=legacy_rc1,legacy_rc2=legacy_rc2,
+                         legacy_rc3=legacy_rc3,legacy_rc4=legacy_rc4,legacy_slim2=legacy_slim2)
+    root=Path(__file__).resolve().parents[1]
+    begin='# BEGIN AGENTFLOW_V3_GUIDANCE_ONLY';end='# END AGENTFLOW_V3_GUIDANCE_ONLY'
+    policy=('STRICT: Do not write product code or run side-effecting tests.' if mode=='strict' else
+        'ADVISORY: edit only after explicit, current USER-role approval in this chat. Clarification, files and state never grant permission. This helper is NOT an enforced security gate.')
+    agent=f'''{begin}
+## Agent Workflow Kit — slim candidate, {mode.upper()} (NOT ENFORCED)
+{policy}
+
+Understand the observable outcome before changing. Read relevant code/data once; distinguish USER requirements, facts and assumptions. Keep approved terms stable. Trace each producer and consumer and one input → action → result when interaction matters. Do not turn unconfirmed assumptions into requirements or ask for facts already available.
+
+Agree once on outcome, explicit files/behavior, one must-preserve case and checks. Reuse approval already given for that scope. Small mechanical work uses a short QUICK contract. A CLI story alone does not require STANDARD or browser testing. Declare verification_target CODE/CLI/UI from the actual requirement before approval; never downgrade an approved UI requirement. Analysis/proposals need no helper records unless durable context was requested.
+
+After approval: `work begin "title"` → patch → `work verify RECEIPT` → `work handoff RECEIPT --summary "actual outcome"`. Begin saves/readbacks/rechecks the approved scope. Inspect decision/prepatch results before editing. Append returned next_command arguments to the helper prefix; replace summary placeholders with actual facts. Receipts carry bindings: do not copy IDs/hashes or supply session IDs. Identity is automatic. Use `work context` only on resume or a genuine gap.
+
+TESTS_FAILED: inspect returned logs, then `work retry RECEIPT --summary "repair reason"` before an in-scope repair. Other BLOCKED/conflicts require reconciliation before effects. Never bypass a block with another API. One cooperative writer per repo. Pause safely with `work pause RECEIPT --summary "progress"`; do not take over another chat.
+
+Test the symptom and preservation. Direct declared CLI execution can establish CLI evidence; unit wrappers cannot claim it. Actual UI interactions remain separate from unit/mock results. Report checked behavior, untested requirements and runtime readiness honestly. Recheck after relevant changes; identical-source verification reuses evidence. Avoid unchanged log polling, duplicate help/history calls and duplicate handoffs.
+
+Keep kit-only artifacts in the external artifact_directory; product regression tests belong with code. Preserve existing rules, history, unrelated changes and Git INDEX/HEAD. Never stage/commit/push/deploy, force-add, unstage/untrack, change hooks/ignore, dependencies/settings/models or add agents without scope. For several milestones, use a brief only when needed. Payload examples: {root / 'docs/QUICKSTART.md'}; advanced/multiple-root work only when required: {root / 'docs/RECOVERY.md'}.
+
+Helper: `{command}`.
+{end}
+'''
+    if not legacy_compact4:
+        agent=agent.replace('Analysis/proposals need no helper records unless durable context was requested.',
+            'Analysis stays in chat. Requested research context is one uniquely named note for this chat in external artifact_directory, without task/brief API records.')
+        agent=agent.replace('Payload examples:', 'Do not inspect kit runtime source for payloads. Payload examples:')
+    if delegated:agent=agent.replace(end,f'Read {root / "docs/DELEGATED_ADVISORY.md"} before delegated effects; setup never renews authority.\n'+end)
+    claude=f'''{begin}
+Read and follow AGENTS.md (NOT ENFORCED). Preserve rules outside managed blocks. {policy}
+{end}
+'''
+    return {'AGENTS.md':agent,'CLAUDE.md':claude}

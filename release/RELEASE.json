@@ -1,7 +1,7 @@
 {
   "name": "Agent Workflow Kit",
-  "version": "1.1.0-slim-candidate.2",
-  "date": "2026-11-03",
+  "version": "1.1.0",
+  "date": "2026-11-05",
   "license": "MIT",
   "distribution": "USER_RUNTIME_AND_OPERATING_GUIDES_ONLY",
   "mode": "Explicit ADVISORY opt-in; STRICT installer default",
@@ -9,6 +9,7 @@
   "setup": "../BOOTSTRAP.md",
   "init_prompt": "../INIT_PROMPT.md",
   "native_security_certified": false,
-  "release_status": "PRERELEASE_SCREENED_EFFICIENCY_UNCONFIRMED",
-  "automatic_session_upgrade": false
+  "release_status": "USER_APPROVED_COMPACT_USAGE_UNCONFIRMED",
+  "automatic_session_upgrade": false,
+  "guidance_revision": "research-note-clarification"
 }
