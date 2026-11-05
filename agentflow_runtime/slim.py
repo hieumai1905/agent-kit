@@ -14,7 +14,7 @@ import re
 import uuid
 
 from agentflow_core import ConflictError, StoreError
-from . import sources, work, brief, coordination
+from . import sources, work, brief, coordination, implementation
 from .evidence_target import target, expected
 from .records import WorkflowRecords
 
@@ -116,6 +116,7 @@ def _load(repo, home, receipt, *, read_only=False):
     from .installer import GuidanceInstaller
     if set(GuidanceInstaller(repo, home, mode='advisory').installed_status()['installed_files'].values()) != {'ADVISORY'}:
         raise StoreError('Current guidance is not consistently ADVISORY; stop and reconcile')
+    contract = {**contract, 'content': implementation.effective(contract,repo,progress['content'])}
     return records, task, row, content, contract
 
 
@@ -173,6 +174,15 @@ def begin(repo, home, title, data):
     owner = coordination.session(data.get('session_ref'))
     try:token = coordination.claim(records, owner, title)
     except ConflictError as exc:
+        held=coordination.writer(records)
+        if held.get('held') and held.get('owner')==owner:
+            pointer=coordination.pointer(records,owner)
+            return {'status':'BLOCKED','reason_code':'OWN_ACTIVE_WORK','writer':coordination.display(records),
+                    **({'receipt':pointer['receipt']} if pointer else {}),
+                    'reasons':['This chat already has active work; begin cannot create or approve it again'],
+                    'next_command':['work','context'],
+                    'next_action':'Read work context and continue the existing owned receipt only if the actual request fits its scope. Do not wait for another chat or begin again; changing scope requires review.',
+                    'write_authorized':False}
         return {'status':'BLOCKED','reason_code':'WRITER_BUSY','reasons':[str(exc)],'write_authorized':False,
                 'next_action':'Owning chat must save handoff/pause at a safe point; do not take over or contact other chats without USER authorization'}
     try:
@@ -198,6 +208,7 @@ def _begin(repo, home, title, data, owner, token):
     records = WorkflowRecords(repo, home, initialize=False)
     goal = brief.bind(records, data)
     started = work.start(repo, home, title, {'contract': contract})
+    if started.get('status')=='BLOCKED':return started
     if started.get('action') != 'PRESENT_CONTRACT':
         return {**started, 'status': 'BLOCKED', 'next_action': 'Existing task found. Resume and reconcile; begin never silently reapproves it.'}
     task = started['task_id']
@@ -294,6 +305,51 @@ def _logs_current(records, content):
             raise ConflictError('Check output changed; do not reuse altered evidence')
 
 
+def _blocked_preparation(records,task,row,content,checked,new_token=None):
+    """Retain a pausable owner pointer, never a usable verify/repair receipt."""
+    blocked={**content,'stage':'BLOCKED','progress_revision':checked['revision'],
+             'preparation_conflicts':checked.get('prepatch_check',{}).get('reasons',[])}
+    if new_token:blocked['lease_token']=new_token
+    receipt=_save(records,task,blocked,row['revision'])
+    return {**checked,'receipt':receipt,'reason_code':'PRECONDITIONS_BLOCKED','next_command':None,
+            'next_action':'Do not patch or verify. Reconcile the prepatch reasons; work pause RECEIPT --summary REASON can preserve progress and release this writer safely.'}
+
+
+def refine(repo, home, receipt, paths, reason):
+    """Prepare allowed file additions under the same actual USER authority."""
+    if not isinstance(reason,str) or len(reason.strip())<6:
+        raise StoreError('Refine needs the actual in-scope implementation reason')
+    if not isinstance(paths,list) or not paths:
+        raise StoreError('Refine needs explicit additional --path files')
+    records,task,row,content,execution=_load(repo,home,receipt)
+    if content['stage'] not in ('BEGUN','VERIFIED'):
+        raise ConflictError('Refine needs active work; do not revive a completed or paused milestone')
+    changed=_check_scope(repo,records,content,execution)
+    _logs_current(records,content)
+    entries=sources.registry(execution['content'],repo)
+    additions=sources.paths(paths,'refine paths')
+    entries[0]['write_paths']=sorted(set(entries[0]['write_paths'])|set(additions))
+    checked=work.checkpoint(repo,home,task,{
+        'contract_sha256':content['contract_sha256'],'expected_revision':content['progress_revision'],
+        'milestone':'HANDOFF','phase':'IMPLEMENTING',
+        'implementation_plan':{'repositories':entries,'reason':reason},
+        'changed_sources':{entries[0]['key']:changed},
+        'summary':reason,'blockers':[],
+        'remaining':['Implement allowed refinement and rerun checks; old evidence remains historical']})
+    if checked['status']=='BLOCKED':
+        return _blocked_preparation(records,task,row,content,checked)
+    bound=records.core.contract_revision(task)
+    progress=records.latest('PROGRESS',task_id=task)
+    effective=implementation.effective(bound,repo,progress['content'])
+    next_content={k:v for k,v in content.items() if k not in ('results','tested_sources','changed_paths')}
+    next_content.update(stage='BEGUN',progress_revision=checked['revision'],
+                        prepared_sources=sources.capture(effective,repo))
+    next_receipt=_save(records,task,next_content,row['revision'])
+    return {**checked,'receipt':next_receipt,'reason_code':'REFINEMENT_PREPARED' if checked['status']!='BLOCKED' else 'PRECONDITIONS_BLOCKED',
+            'next_command':_next('verify',next_receipt) if checked['status']!='BLOCKED' else None,
+            'next_action':'Inspect prepatch results and actual USER boundaries, edit allowed files, then verify. No new approval was created.'}
+
+
 def retry(repo, home, receipt, summary):
     """Prepare another batch under the same approval; never change scope or tests."""
     if not isinstance(summary, str) or not summary.strip():
@@ -322,6 +378,8 @@ def _retry(records, task, row, content, contract, repo, home, summary, changed, 
         'completed': ['Reconciled changes against the unchanged approved scope'],
         'remaining': ['Repair in scope and rerun checks; previous results stay historical'],
         'blockers': [], 'next_action': 'Repair only after the persisted prepatch check is current'})
+    if checked['status']=='BLOCKED':
+        return _blocked_preparation(records,task,row,content,checked,new_token)
     next_content = {k: v for k, v in content.items() if k not in ('results', 'tested_sources', 'changed_paths')}
     next_content.update(stage='BEGUN', progress_revision=checked['revision'])
     next_content['prepared_sources']=sources.capture(contract['content'],repo)
@@ -358,7 +416,7 @@ def pause(repo, home, receipt, summary):
     if receipt is None:
         return coordination.pause_preparation(WorkflowRecords(repo,home,initialize=False),summary)
     records, task, row, content, contract = _load(repo,home,receipt)
-    if content['stage'] not in ('BEGUN','VERIFIED'):raise ConflictError('Only active work can pause')
+    if content['stage'] not in ('BEGUN','VERIFIED','BLOCKED'):raise ConflictError('Only active work can pause')
     conflicts=[]
     try:changed=_check_scope(repo,records,content,contract)
     except StoreError as exc:
@@ -386,14 +444,27 @@ def context(repo, home, owner=None, receipt=None):
     records,task,row,content,contract=_load(repo,home,receipt,read_only=True)
     before=content.get('tested_sources') or content.get('prepared_sources')
     now=sources.capture(contract['content'],repo)
-    next_step={'BEGUN':'Implement only approved scope, then work verify RECEIPT',
+    next_step={'BEGUN':'Continue this chat existing receipt within actual USER scope; do not call begin again. Patch only prepared files, then verify',
                'VERIFIED':'Inspect checks; handoff or retry before repair','PAUSED':'Reconcile current scope/sources, then work retry RECEIPT --summary REASON',
+               'BLOCKED':'Do not patch/verify. Reconcile preparation conflicts or pause safely to release the writer',
                'HANDED_OFF':'Review pending acceptance; begin a distinct milestone only under its actual USER approval'}[content['stage']]
+    from .proposals import view
+    writer=coordination.display(records)
+    held=coordination.writer(records)
+    matches=held.get('held') and held.get('token')==content.get('lease_token') and held.get('owner')==content.get('session_ref')
+    owned=matches and (not coordination.identity() or writer.get('ownership')=='THIS_CHAT')
+    if owned and not coordination.identity():writer['ownership']='MATCHING_RECEIPT_NO_PROVIDER'
+    active=content['stage'] in ('BEGUN','VERIFIED','BLOCKED')
+    if active and not owned:
+        next_step='Writer no longer matches this receipt; reconcile before effects, never take over'
     return {'status':'CONTEXT_READ','session_ref':content.get('session_ref'),'title':content.get('title'),
         'stage':content['stage'],'receipt':receipt,'source_state':'CURRENT' if now==before else 'CHANGED_SINCE_SNAPSHOT',
-        'project_context':brief.view(records,content),'writer':coordination.display(records),
+        'project_context':brief.view(records,content),'writer':writer,
+        'continuation_state':'OWNED_ACTIVE_RECEIPT' if owned else 'RECONCILE_WRITER' if active else content['stage'],
+        'pending_proposal':view(records,task),
+        'reasons':content.get('preparation_conflicts',[]),
         'checks':[{'command':x['command'],'status':x['status'],'exit_code':x['exit_code']} for x in content.get('results',[])],
         'read_only':True,'write_authorized':False,'next_action':next_step,
-        'next_command':(_next('verify',receipt) if content['stage']=='BEGUN' else
+        'next_command':(None if active and not owned else _next('verify',receipt) if content['stage']=='BEGUN' else
                         _next('retry' if any(x['status']!='PASS' for x in content.get('results',[])) else 'handoff',receipt,True) if content['stage']=='VERIFIED' else
                         _next('retry',receipt,True) if content['stage']=='PAUSED' else None)}

@@ -1,6 +1,6 @@
-# Setup / upgrade v1.1.0
+# Setup / upgrade v1.1.1
 
-Dùng INIT_PROMPT.md mặc định: clone tag v1.1.0 vào thư mục ngoài dự án, xác minh peeled commit/HEAD/remote tag và manifest. Không dùng main/latest hoặc bản cũ thay thế khi kiểm tra không khớp.
+Dùng INIT_PROMPT.md mặc định: clone tag v1.1.1 vào thư mục ngoài dự án, xác minh peeled commit/HEAD/remote tag và manifest. Không dùng main/latest hoặc bản cũ thay thế khi kiểm tra không khớp.
 
 Yêu cầu: Git và Python 3.11+ có sẵn. Không tự cài dependencies.
 

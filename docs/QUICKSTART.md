@@ -1,8 +1,8 @@
-# Compact kit v1.1.0: ordinary work
+# Compact kit v1.1.1: ordinary work
 
 Use the installed helper prefix in AGENTS.md. Setup is explicit and separate from task approval. Identity comes from the provider environment; do not supply session IDs. No global setting, dependency, extra agent or publication is implied.
 
-For a small approved fix, use the short contract. Do not invent a usage_scenario or a heavy contract just to describe a small CLI/library change. Critical risks and multiple repositories still require their existing checks.
+For a small authorized fix, use the short contract. A clear implementation request can supply authority; honor proposal-first/read-only instructions and exact locks. Do not ask again for an already authorized scope. Record its actual USER source without adding undisclosed permissions. Do not invent a usage_scenario or a heavy contract for a small CLI/library change. Critical risks and multiple repositories still require their existing checks. When genuinely needed, explain the user's decision using [DECISIONS.md](DECISIONS.md).
 
 ```sh
 HELPER work begin "Missing key exit status" --source-ref "Actual USER approval" \
@@ -12,6 +12,18 @@ HELPER work begin "Missing key exit status" --source-ref "Actual USER approval" 
 ```
 
 `HELPER` is shorthand for the existing prefix, not a command/file to create. The response's `next_command` is an argv suffix to append to that prefix. Receipts can be short names resolved only inside this repo's external artifact directory. Inspect approval/prepatch before patching; then verify. TESTS_FAILED returns a retry command: read the relevant log, fill the actual repair summary, run retry before editing, verify again, then handoff with the actual outcome. Other BLOCKED/conflicts require reconciliation. Never replay a summary placeholder or switch APIs to bypass a block. Successful handoff already saves the report.
+
+## Related files within the original scope
+
+For component work, include a bounded file allowance in the initial authorized scope. Short begin flags `--allow-under src/component --allow-under tests/component` record future file allowances; use only permissions the actual request/decision covers. Known files use `--path`; `--support-file generated-manifest.json` also includes that known support file in the initial writable footprint. Protected dependency/security/config/migration files must be explicit `--path` files. With `--data`, use implementation_policy as shown in [USAGE.md](USAGE.md). Missing policy and exact USER file restrictions remain EXACT; do not retrofit an allowance into an old task.
+
+Before editing a related additional file:
+
+```sh
+HELPER work refine RECEIPT --path tests/component/regression.py --reason "Related regression within the original component authority"
+```
+
+Inspect its prepatch result, then edit and verify with the new receipt. The original contract and USER decision stay fixed; the effective footprint gains the allowed file. Existing PASS is invalidated and all declared checks rerun. Same directory is not proof of semantic scope: new behavior, excluded effects or an exact USER lock need review. Refine rejects files already changed out of scope; it cannot authorize a patch retroactively. A real scope proposal stays separate from active authority; see [RECOVERY.md](RECOVERY.md).
 
 ## Choose evidence before approval
 

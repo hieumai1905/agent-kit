@@ -26,7 +26,12 @@ def writer(records):
 
 
 def display(records):
-    return {k:v for k,v in writer(records).items() if k!='token'}
+    current=writer(records)
+    result={k:v for k,v in current.items() if k!='token'}
+    result['ownership']=('IDLE' if not current.get('held') else
+        'THIS_CHAT' if identity() and current.get('owner')==identity() else
+        'OTHER_CHAT' if identity() else 'UNKNOWN')
+    return result
 
 
 def claim(records, owner, title):

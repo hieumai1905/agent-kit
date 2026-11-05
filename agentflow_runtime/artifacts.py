@@ -249,6 +249,10 @@ class Artifacts:
 
 def setup(repo,home,mode,apply=False,upgrade=False,classifications=None,*,delegated=False):
     if not apply:return _setup(repo,home,mode,False,upgrade,classifications,delegated=delegated)
+    # Reject known setup blockers without initializing state or taking a writer.
+    # The apply path re-observes the plan after claiming, closing the stale gap.
+    preview=_setup(repo,home,mode,False,upgrade,classifications,delegated=delegated)
+    if preview.get('status')=='BLOCKED':return preview
     from . import coordination
     rec=WorkflowRecords(repo,home)
     try:token=coordination.claim(rec,coordination.session(),'Guidance setup/upgrade')

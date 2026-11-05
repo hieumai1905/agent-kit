@@ -2,6 +2,8 @@
 
 State ngoài repo là báo cáo UNVERIFIED, không cấp quyền hay xác thực quyết định. Không migrate/xóa state cũ chỉ để dùng giao diện mới.
 
+Quyền thực theo DECISIONS.md: yêu cầu triển khai rõ có thể đủ quyền; chỉ xin phần còn thiếu và giữ giới hạn trình kế hoạch trước. Đề xuất đang chờ nằm riêng, không thay active scope/decision. Context/resume hiển thị pending_proposal để phân biệt phần còn được làm và phần chưa được duyệt; agent phải tự kiểm tính độc lập, không suy từ việc có draft.
+
 ## Mốc lưu
 
 | Mốc | Nội dung |

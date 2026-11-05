@@ -1,6 +1,28 @@
-# Recovery and advanced APIs — v1.1.0
+# Recovery and advanced APIs — v1.1.1
 
-Version 1.1.0 retains repair/context/cooperative writer APIs. Ordinary work starts at QUICKSTART.md; this document is for recovery and longer work. Use the default INIT_PROMPT.md for explicit setup/upgrade; existing chats never upgrade automatically.
+Version 1.1.1 retains repair/context/cooperative writer APIs. Ordinary work starts at QUICKSTART.md; this document is for recovery and longer work. Use the default INIT_PROMPT.md for explicit setup/upgrade; existing chats never upgrade automatically.
+
+## Pending changes and the actual decision
+
+`propose-contract "specific existing task" /EXTERNAL/proposal.json` now saves a separate CONTRACT_PROPOSAL draft and returns proposal_revision. It does not replace the active contract, decision, progress or receipt. A later draft requires `--expected-revision N` using the observed proposal revision; stale writes fail. Legacy history is retained. Merely storing a draft never approves it.
+
+Explain the extra decision in chat using [DECISIONS.md](DECISIONS.md). Continue only independent previously authorized work after recheck; pause dependent work. When uncertain about independence, pause at a safe point. New effect types/roots/boundaries require an actual USER decision, never an approval inferred from state.
+
+When the USER refers to a saved proposal, read `work proposal "specific task"` first and preserve its exact paths/checks. Begin/start detect path overlap with pending work and return a read-only reconciliation command instead of creating a duplicate scope under another title. Follow that command, compare the actual USER decision with the saved proposal and accept only the approved version. A path overlap is a hint to reconcile, not proof of meaning or approval; disjoint independent work remains possible. Do not switch APIs to bypass the overlap.
+
+For an actual USER rejection/cancellation, use `work reject-proposal TOPIC --proposal-revision N --source-ref "Actual USER rejection"`. It records rejection of that exact pending version and leaves active scope/decision/receipt intact. Rejected/consumed drafts cannot be accepted by replay. Do not reject a draft yourself merely to unblock a new overlapping task.
+
+After that decision, the advanced path uses:
+
+```sh
+HELPER work accept-proposal "specific existing task" --proposal-revision N --source-ref "Actual USER decision approving this exact presented proposal"
+```
+
+Use the observed proposal_revision, not the contract revision. The pending contract must contain explicit repositories/files, work_type, preservation and checks. Active receipt writers must pause/handoff before a scope change. The command atomically verifies the base/pending version, consumes the draft and changes the active contract, then saves/readbacks/rechecks the actual reported decision before returning. Do not start/checkpoint that decision again. After patching, run its next_command immediately before tests to capture sources; fill the returned finish_input_example with actual checks/results and send it to work finish TOPIC --data -. Failure after activation leaves no matching old decision: stop and reconcile, never retry activation blindly. Old evidence/receipts stay historical. A receipt milestone may instead pause/handoff and begin a distinct newly authorized milestone. There is no OS write grant or trusted USER authentication.
+
+Context reports writer ownership as THIS_CHAT, OTHER_CHAT, IDLE or UNKNOWN (receipt-only fallback is labelled explicitly). A matching active receipt is continuation of this chat, not another owner's lock. OWN_ACTIVE_WORK means read work context and use that receipt; never call begin repeatedly or ask the user to release another chat. Unknown/mismatched ownership requires reconciliation, not takeover.
+
+The low-level core CLI retains its draft revision primitive for compatibility. Normal operations use the runtime command above; do not use a low-level API to replace scope while a review is pending or bypass a conflict.
 
 ## Normal task and repair
 

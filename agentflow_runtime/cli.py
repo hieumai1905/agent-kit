@@ -1,4 +1,4 @@
-"""Agent Workflow Kit slim candidate local process CLI (V3 engine).
+"""Agent Workflow Kit local process CLI (V3 engine).
 
 Safe by default: read-only exploration and external-state drafts; no product-code
 mutation, native approvals, execution grants, model calls or CI/CD actions.
@@ -36,11 +36,11 @@ from agentflow_si.operations import mutation_preflight, git_scope_preview, class
 from agentflow_si.workflow import (evidence_impact, evidence_graph_draft, intent_preview,
     profile_exception_proposal, verification_plan, verification_resource_conflicts)
 
-VERSION='1.1.0'
+VERSION='1.1.1'
 
 
 def make_parser():
-    p=argparse.ArgumentParser(description='Agent Workflow Kit slim candidate - begin/verify/handoff; advanced APIs retained; not OS enforcement')
+    p=argparse.ArgumentParser(description='Agent Workflow Kit 1.1.1 - begin/verify/handoff; advanced APIs retained; not OS enforcement')
     p.add_argument('--repo',required=True,help='Existing project folder')
     p.add_argument('--state-home',help='External local state root')
     sub=p.add_subparsers(dest='action',required=True)
@@ -55,6 +55,8 @@ def make_parser():
     begin.add_argument('--session',help=argparse.SUPPRESS) # legacy fallback; environment always wins
     begin.add_argument('--source-ref',help='Actual USER approval reference in this chat')
     begin.add_argument('--objective');begin.add_argument('--path',action='append',default=[])
+    begin.add_argument('--allow-under',action='append',default=[],help='Initially authorized component directory for bounded file refinements; never infer for old/exact tasks')
+    begin.add_argument('--support-file',action='append',default=[],help='Known authorized support file, included in the initial writable footprint; protected files use explicit --path')
     begin.add_argument('--accept',action='append',default=[]);begin.add_argument('--preserve',action='append',default=[])
     begin.add_argument('--test',help='One existing project command, parsed without a shell; environment variables in arguments are expanded')
     begin.add_argument('--covers',help='Explicit reported check mapping, e.g. A1,P1; not inferred semantic coverage')
@@ -69,6 +71,17 @@ def make_parser():
     handoff.add_argument('--remaining',action='append',default=[])
     retry=worksub.add_parser('retry',help='Persist/recheck a same-scope repair batch; no copied bindings or advanced payload')
     retry.add_argument('topic',help='Latest receipt path');retry.add_argument('--summary',required=True)
+    refine=worksub.add_parser('refine',help='Add files within the originally authorized bounded policy; no new approval')
+    refine.add_argument('topic',help='Latest active receipt');refine.add_argument('--path',action='append',required=True)
+    refine.add_argument('--reason',required=True)
+    accept=worksub.add_parser('accept-proposal',help='After actual USER approval, activate a pending advanced scope and record/recheck its decision')
+    accept.add_argument('topic');accept.add_argument('--proposal-revision',type=int,required=True)
+    accept.add_argument('--source-ref',required=True);accept.add_argument('--verbose',action='store_true')
+    proposal=worksub.add_parser('proposal',help='Read the exact saved proposal before acting on a referenced decision')
+    proposal.add_argument('topic');proposal.add_argument('--verbose',action='store_true')
+    reject=worksub.add_parser('reject-proposal',help='Record actual USER rejection without changing active scope/receipt')
+    reject.add_argument('topic');reject.add_argument('--proposal-revision',type=int,required=True)
+    reject.add_argument('--source-ref',required=True);reject.add_argument('--verbose',action='store_true')
     goal=worksub.add_parser('brief',help='Optional durable project outcome for several milestones; never an approval')
     goal.add_argument('--data',help='Reviewed requirements/examples JSON, or - for stdin; omit to read')
     goal.add_argument('--expected-revision',type=int,default=0)
@@ -77,7 +90,7 @@ def make_parser():
     pause.add_argument('topic',nargs='?',help='Latest receipt; omit only to reconcile a dead preparation process owned by this chat');pause.add_argument('--summary',required=True);pause.add_argument('--verbose',action='store_true')
     ctx=worksub.add_parser('context',help='Read this chat milestone, requirements and next action without searching other tasks')
     ctx.add_argument('--session');ctx.add_argument('--receipt');ctx.add_argument('--verbose',action='store_true')
-    for cmd in (begin,verify,handoff,retry):cmd.add_argument('--verbose',action='store_true')
+    for cmd in (begin,verify,handoff,retry,refine):cmd.add_argument('--verbose',action='store_true')
     for name in ('start','checkpoint','finish','history','sources'):
         examples={
           'start':'JSON: analysis_level QUICK|STANDARD|DEEP, work_type BUG|FEATURE|MAINTENANCE, objective, scope.functional, preserve, acceptance, verification_strategy. STANDARD needs scenario/impact facts and gaps(list); usage_scenario can supply the missing scenarios/declared-scope inventory without duplicate input. Explicit invalid fields are not overwritten. DEEP also needs risk_summary(string), evidence_sources(list), solution_challenge(object). Use contract-template --level DEEP for field shapes. Sibling repos: repositories=[{key,root:absolute Git root,write_paths:[explicit relative files],read_paths:[]}]. Direct CLI or stdin; do not read implementation source to discover payloads.',
@@ -112,7 +125,8 @@ def make_parser():
     diagnostic=sub.add_parser('delegation-check');diagnostic.add_argument('json_file')
     tool=sub.add_parser('classify-tool');tool.add_argument('command')
     session=sub.add_parser('open-session');session.add_argument('provider',choices=['codex_cli','codex_desktop','claude_cli','claude_desktop']);session.add_argument('--task-id');session.add_argument('--external-ref')
-    contract=sub.add_parser('propose-contract');contract.add_argument('task_id');contract.add_argument('json_file')
+    contract=sub.add_parser('propose-contract',help='Save a pending draft without replacing active scope/decision')
+    contract.add_argument('task_id');contract.add_argument('json_file');contract.add_argument('--expected-revision',type=int,default=0)
     checkpoint=sub.add_parser('checkpoint');checkpoint.add_argument('task_id');checkpoint.add_argument('json_file');checkpoint.add_argument('--expected-revision',type=int,default=0)
     template=sub.add_parser('checkpoint-template');template.add_argument('task_id');template.add_argument('--milestone',choices=MILESTONES,default='HANDOFF')
     milestone=sub.add_parser('checkpoint-milestone');milestone.add_argument('task_id');milestone.add_argument('json_file');milestone.add_argument('--expected-revision',type=int,default=0)
@@ -198,20 +212,30 @@ def process(args):
         if args.artifact_action=='inventory':return {'inventory':manager.inventory(),'read_only':True}
         return manager.check(data.get('product_paths'))
     if args.action=='work':
+        if args.work_action=='reject-proposal':
+            from .proposals import reject
+            return reject(repo,home,args.topic,args.proposal_revision,args.source_ref)
+        if args.work_action=='proposal':
+            from .proposals import read
+            return read(repo,home,args.topic)
+        if args.work_action=='accept-proposal':
+            from .proposals import accept
+            return accept(repo,home,args.topic,args.proposal_revision,args.source_ref)
         if args.work_action=='brief':
             from . import brief
             records=WorkflowRecords(repo,home,initialize=False)
             if args.data:return brief.save(records,_work_data(args.data,repo),args.expected_revision)
             return {'status':'BRIEF_READ','project_context':brief.view(records,{}),'read_only':True,'write_authorized':False}
-        if args.work_action in ('begin','verify','handoff','retry','pause','context'):
+        if args.work_action in ('begin','verify','handoff','retry','pause','context','refine'):
             from . import slim
             if args.work_action=='context':return slim.context(repo,home,args.session,args.receipt)
             if args.work_action=='pause':return slim.pause(repo,home,args.topic,args.summary)
             if args.work_action=='verify':return slim.verify(repo,home,args.topic,args.timeout)
             if args.work_action=='handoff':return slim.handoff(repo,home,args.topic,args.summary,args.remaining)
             if args.work_action=='retry':return slim.retry(repo,home,args.topic,args.summary)
+            if args.work_action=='refine':return slim.refine(repo,home,args.topic,args.path,args.reason)
             if args.data:
-                if any((args.source_ref,args.objective,args.path,args.accept,args.preserve,args.test,args.covers,args.scenario,args.verification_target,args.cli_entrypoint)):
+                if any((args.source_ref,args.objective,args.path,args.allow_under,args.support_file,args.accept,args.preserve,args.test,args.covers,args.scenario,args.verification_target,args.cli_entrypoint)):
                     raise StoreError('Choose --data or short contract flags, not both')
                 data=_work_data(args.data,repo)
             else:
@@ -220,11 +244,14 @@ def process(args):
                 contract={'analysis_level':'QUICK','work_type':args.type,
                     'objective':args.objective,'scope':{'functional':args.path},'acceptance':args.accept,
                     'preserve':args.preserve,'verification_strategy':[args.test],
-                    'repositories':[{'key':'project','root':str(Path(repo).resolve()),'write_paths':args.path,'read_paths':[]}],
+                    'repositories':[{'key':'project','root':str(Path(repo).resolve()),'write_paths':sorted(set(args.path+args.support_file)),'read_paths':[]}],
                     'gaps':[]}
                 if args.scenario:contract['usage_scenario']=args.scenario
                 if args.verification_target:contract['verification_target']=args.verification_target
                 if args.cli_entrypoint:contract['cli_entrypoint']=args.cli_entrypoint
+                if args.allow_under or args.support_file:
+                    contract['implementation_policy']={'mode':'SCOPED_REFINEMENTS','repositories':{'project':{
+                        'allow_under':args.allow_under,'support_files':args.support_file}}}
                 data={'contract':contract,'approval_source':args.source_ref,
                       'checks':[{'argv':shlex.split(args.test),'kind':'REPRODUCTION' if args.type=='BUG' else 'REGRESSION',
                                  'covers':args.covers.split(',') if args.covers else []}]}
@@ -290,7 +317,7 @@ def process(args):
     if args.action=='si-test-footprints':return verification_resource_conflicts(_read_json(args.json_file))
     if args.action=='si-release-doctor':
         return release_readiness(repo,home,observations=_read_json(args.observations_json) if args.observations_json else None)
-    if args.action=='version':return {'version':VERSION,'working_revision':'COMPACT-1.1.0',
+    if args.action=='version':return {'version':VERSION,'working_revision':'DECISIONS-1.1.1',
                                      'release_class':'PRACTICAL_ADVISORY_RELEASE_NOT_SECURITY_CERTIFIED'}
     if args.action=='repo-status':return git_snapshot(repo)
     if args.action=='resume':
@@ -357,18 +384,17 @@ def process(args):
         metadata=_read_json(args.metadata_json) if args.metadata_json else {'reported_by':'agent_or_operator'}
         return app.record_unverified_evidence(args.task_id,args.kind,args.reported_status,[],metadata=metadata)
     if args.action=='propose-contract':
-        doc=_read_json(args.json_file)
-        readiness=analyze_readiness(doc)
-        if readiness['status']!='READY_FOR_HUMAN_REVIEW':
-            raise StoreError('Task Contract is not structurally ready: '+', '.join(readiness['blockers']))
-        t=app.get_task(args.task_id)
-        if t['lifecycle']=='DRAFT':t=app.transition_task(args.task_id,t['revision'],'PREFLIGHT')
-        result=app.revise_contract(args.task_id,t['revision'],doc)
-        return {'contract':result,'readiness':readiness,
-                'approval':app.transition_task(args.task_id,result['revision'],'WAITING_APPROVAL'),
-                'trusted_approval':False,'write_authorized':False}
+        from .proposals import stage
+        doc=_work_data(args.json_file,repo)
+        if args.json_file!='-' and doc.get('repositories'):
+            from .sources import registry
+            if any(Path(args.json_file).expanduser().resolve().is_relative_to(Path(r['root'])) for r in registry(doc,repo)):
+                raise StoreError('Kit JSON must stay outside every product root; use stdin')
+        return stage(repo,home,args.task_id,doc,args.expected_revision)
     if args.action=='navigate':return nav.search(args.query)
-    if args.action=='task':return {'task':app.get_task(args.task_id),'contract':app.contract_revision(args.task_id)}
+    if args.action=='task':
+        return {'task':app.get_task(args.task_id),'contract':app.contract_revision(args.task_id),
+                'lifecycle_note':'Canonical lifecycle is uncertified and can remain WAITING_APPROVAL after an ADVISORY decision. It does not establish missing USER approval. Read the actual current USER source and bound decision checkpoint; do not request the same permission again.'}
     if args.action=='interact':
         r=route_intent(args.text)
         intent=r['intent']

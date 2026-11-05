@@ -35,6 +35,7 @@ class HandoffBuilder:
         contract_content=contract['content']
         display=task_status(self.records,task_id,task=task,contract=contract,progress_record=pieces.get('PROGRESS'))
         verification=last_reported_verification(self.records,task_id,contract,pieces.get('PROGRESS'))
+        from .proposals import view
         return {'task':{'id':task_id,'title':task['title'],'state':task['lifecycle'],
                         'revision':task['revision'],'approved':False if not task['approved_contract_revision'] else
                           'CLAIMED_IN_DATABASE_NOT_TRUSTED_IN_THIS_RUNTIME'},
@@ -43,6 +44,8 @@ class HandoffBuilder:
                             'acceptance':contract['content'].get('acceptance',[])},
                 'sessions':sessions,'work_items':work,'recent_reported_evidence':evid,
                 'relevant_artifacts':compact,
+                'pending_proposal':view(self.records,task_id),
+                'lifecycle_note':display['explanation_vi'],
                 'artifact_freshness':freshness,
                 'status_view':display,
                 'resume_brief':resume_brief(pieces.get('PROGRESS'),display,verification),

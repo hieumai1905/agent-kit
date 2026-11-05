@@ -134,6 +134,10 @@ def start(repo, home, title, data, kind='change'):
     artifact_check=_artifact_checks(repo,home,contract) if manager.inventory() is not None else {'status':'NOT_CONFIGURED','next_action':'Complete setup before effects'}
     if artifact_check['status']=='BLOCKED':raise StoreError('Contract handoff blocked by artifacts: '+'; '.join(artifact_check['reasons']))
     rec = WorkflowRecords(repo, home)
+    if contract.get('repositories'):
+        from .proposals import pending_overlap
+        overlap=pending_overlap(rec,contract)
+        if overlap:return overlap
     matches = TaskNavigator(rec).search(title)
     if matches['choices'] and matches['choices'][0]['match_score'] >= .65:
         return {'action': 'RECONCILE_EXISTING_TASK', 'matches': matches, 'new_task_created': False,
@@ -142,8 +146,9 @@ def start(repo, home, title, data, kind='change'):
                                    'semantic_correctness_verified': False}, normalize(title), contract=contract)
     tid = created['task_id']
     body = checkpoint_template(rec, tid, 'HANDOFF')['checkpoint']
-    body.update(summary='Contract prepared; awaiting the user decision', completed=['Read relevant context; drafted contract'],
-                remaining=['Obtain explicit decision on this contract'], next_action='Present contract and wait for the user decision')
+    body.update(summary='Scope recorded; actual current USER authority must be recorded before effects', completed=['Read relevant context; recorded the same intended scope'],
+                remaining=['Record actual current USER authority; request review only if authority is missing'],
+                next_action='Reuse sufficient actual USER authority for this scope; otherwise present the unresolved decision and wait')
     checkpoint = save_checkpoint(rec, tid, body)
     observed_contract=rec.core.contract_revision(tid)
     observed_progress=rec.latest('PROGRESS',task_id=tid)
@@ -161,7 +166,7 @@ def start(repo, home, title, data, kind='change'):
             'decision_input_example':{'contract_sha256':created['contract_hash'],'expected_revision':checkpoint['revision'],
                 'decision':{'choice':'APPROVED_OR_REJECTED_AFTER_ACTUAL_USER_DECISION','source':'actual current-chat USER message reference'},
                 **({'source_paths':['existing/task-owned/file']} if not contract.get('repositories') else {})},
-            'next_action': 'Contract/checkpoint read back; reuse this binding/revision, no immediate lookup/resume needed. Record only the actual current USER decision on this same scope before patch; if still pending, wait.',
+            'next_action': 'Scope/checkpoint read back. Record the actual current USER authority on this same scope before patch; a clear implementation request can suffice unless proposal-first/exact limits say otherwise. Do not ask again for authority already given. If missing, explain the extra decision and wait. No immediate lookup/resume needed.',
             'trusted': False, 'write_authorized': False}
 
 
@@ -407,6 +412,8 @@ def compact_resume(out,artifact_check=None,artifact_directory=None):
             'source_coverage':observed.get('coverage'),
             'repository_sources':observed.get('repositories',[]),
             'implementation_plan':implementation.summary(packet.get('relevant_artifacts',{}).get('PROGRESS',{}).get('implementation_plan')),
+            'pending_proposal':packet.get('pending_proposal'),
+            'lifecycle_note':packet.get('lifecycle_note'),
             'lists_truncated':truncated,'content_truncated':truncated,
             'git':git,'history_available':True,'write_authorized':False,
             'next_action':packet['next_action']}

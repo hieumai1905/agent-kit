@@ -1,8 +1,8 @@
-# API nâng cao — v1.1.0
+# API nâng cao — v1.1.1
 
-Trong ứng viên slim, luồng thường dùng [SLIM.md](SLIM.md). Phần dưới giữ API nâng cao và tương thích state/history cũ; không cần đọc hết cho một task nhỏ đã rõ.
+Luồng thường dùng [QUICKSTART.md](QUICKSTART.md). Phần dưới giữ API nâng cao và tương thích state/history cũ; không cần đọc hết cho một task nhỏ đã rõ.
 
-Đây là API nâng cao giữ từ rc4; luồng thường dùng SLIM.md. Bản slim vẫn là prerelease, chưa xác nhận hiệu quả tổng quát. Người dùng giao việc bình thường; agent đọc workflow đã setup. Giữ một writer, duyệt trực tiếp trong chat. Không tự commit/push/deploy hoặc đổi model/quyền/dependencies.
+Ranh giới tự làm/xin duyệt và cách trình bày theo [DECISIONS.md](DECISIONS.md). Yêu cầu triển khai rõ có thể đủ quyền; giữ chỉ dẫn trình kế hoạch trước và mọi giới hạn cụ thể. Helper ghi nhận cùng phạm vi đó, không bắt thêm một lần duyệt thủ tục. Giữ một writer; không thực hiện publication hoặc đổi model/quyền/dependencies vượt quyền hiện có. Chưa xác nhận hiệu quả tổng quát trên mọi dự án.
 
 ## Setup
 
@@ -29,7 +29,7 @@ Lượt chỉ khảo sát/đề xuất/contract chưa triển khai trả lời t
 {"analysis_level":"QUICK","work_type":"BUG","objective":"Trả exit 1 khi thiếu key","scope":{"functional":["scripts/locales.py","scripts/tests/test_locales.py"],"excluded":["Bản dịch"]},"preserve":["Giữ dữ liệu dịch và hành vi khi đủ key"],"acceptance":["--check thiếu key trả 1"],"verification_strategy":["Chạy reproduction và unittest"],"knowledge":{"confirmed":["Người dùng yêu cầu sửa exit status"],"observed":["Reproduction hiện trả 0"],"proposed":[]}}
 ```
 
-`work_type` là BUG/FEATURE/MAINTENANCE. STANDARD/DEEP giữ kiểm structural hiện có; xem `contract-template --level DEEP` khi cần hình dạng field. Routing xét objective, risk và scope thực: migration/auth/payment có thể yêu cầu DEEP; footprint rộng ít nhất STANDARD. Loại trừ/read-only/docs không tự tạo trigger. Thông tin cần người dùng quyết phải ở open_questions/gaps với blocking đúng, không tự xác nhận giả định. Hỏi/khảo sát độc lập trả lời trực tiếp, hoặc `work start "Chủ đề" --kind investigate` không sinh state. Start trả binding và checkpoint_revision; tự kiểm artifact nếu inventory đã có, trình contract và chờ duyệt. Không tự tái sử dụng một việc gần giống: helper trả match để reconcile.
+`work_type` là BUG/FEATURE/MAINTENANCE. STANDARD/DEEP giữ kiểm structural hiện có; xem `contract-template --level DEEP` khi cần hình dạng field. Routing xét objective, risk và scope thực: migration/auth/payment có thể yêu cầu DEEP; footprint rộng ít nhất STANDARD. Loại trừ/read-only/docs không tự tạo trigger. Thông tin cần người dùng quyết phải ở open_questions/gaps với blocking đúng, không tự xác nhận giả định. Hỏi/khảo sát độc lập trả lời trực tiếp, hoặc `work start "Chủ đề" --kind investigate` không sinh state. Start trả binding và checkpoint_revision; tự kiểm artifact nếu inventory đã có. Ghi nguồn quyền USER thực đã đủ cho scope; nếu còn thiếu thì trình đúng quyết định và chờ. Không tự tái sử dụng một việc gần giống: helper trả match để reconcile.
 
 Khi thay đổi tương tác, thêm `usage_scenario` là vài dòng mô tả dữ liệu đầu vào, hành động/thứ tự, phụ thuộc/thời gian chờ và kết quả; kiểm lưu/mở lại khi liên quan. Giả định có hậu quả cần khảo sát và nêu rõ trước khi chọn giải pháp. Không thêm worksheet hoặc giả vờ validator đã chứng minh hiểu đúng. Việc cơ học không cần trường này. Khi có usage_scenario, finish giữ trạng thái PARTIAL nếu chưa có báo cáo USER_WORKFLOW qua đường tương tác thực; xem VERIFICATION.md.
 
@@ -53,7 +53,7 @@ python3 -B /ABS/KIT/tools/agentflow.py --repo /ABS/PROJECT work checkpoint "Tên
 
 Lấy revision thực từ start/resume, không đoán 1. Helper chỉ tự điền nội dung nói rằng quyết định đã được báo cáo, không tự suy ra tiến độ code. Nếu chỉ tạo file mới, dùng `new_paths` cho đường dẫn chưa tồn tại. Quyết định tự persist → readback → recheck, trả decision_readback/prepatch_check, không cấp quyền. Nonzero/BLOCKED phải dừng trước patch. Không gọi lại readback/--check ngay khi thành công; chỉ recheck sau gián đoạn/thay đổi trước batch tiếp theo. Hash/path/Git đổi phải reconcile rồi checkpoint facts mới, không lặp payload cũ mù. Đây là snapshot, không khóa OS.
 
-Checkpoint chỉ nhận CONTRACT_DECISION/HANDOFF/SCOPE_CHANGE/IMPLEMENTATION_VERIFICATION, không có IMPLEMENTATION_PROGRESS. Tiến độ thường dùng HANDOFF/phase IMPLEMENTING. Khi chia nhiều batch có chủ đích, đối chiếu thay đổi vừa làm với scope trước; gửi progress có source_paths (legacy) và prepare_next_batch:true để lưu baseline mới và tự recheck. Giữ nguyên quyết định contract, không ghi approval giả. Thay đổi lạ/concurrent phải điều tra trước. Mẫu finish đầy đủ chỉ ở API/--verbose. Đổi contract dùng `propose-contract`; approval cũ không theo revision mới. Conflict phải đọc/reconcile, không tự lấy revision mới để ghi đè.
+Checkpoint chỉ nhận CONTRACT_DECISION/HANDOFF/SCOPE_CHANGE/IMPLEMENTATION_VERIFICATION, không có IMPLEMENTATION_PROGRESS. Tiến độ thường dùng HANDOFF/phase IMPLEMENTING. Khi chia nhiều batch có chủ đích, đối chiếu thay đổi vừa làm với scope trước; gửi progress có source_paths (legacy) và prepare_next_batch:true để lưu baseline mới và tự recheck. Giữ nguyên quyết định contract, không ghi approval giả. Thay đổi lạ/concurrent phải điều tra trước. Mẫu finish đầy đủ chỉ ở API/--verbose. `propose-contract` lưu draft riêng, không thay active scope. Sau quyết định mới dùng `work accept-proposal` theo RECOVERY.md; approval cũ không theo revision mới. Conflict phải đọc/reconcile, không tự lấy revision mới để ghi đè.
 
 ### 3. Kiểm thử và bàn giao
 

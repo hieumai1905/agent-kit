@@ -6,12 +6,17 @@ def work_result(value):
           'saved','no_changes','status','artifact_directory','handoff_saved','handoff_revision',
           'auto_complete','source_snapshot_file','scope_sha256','repositories','files','receipt','checks','reasons',
           'existing_task_lookup_performed','reason_code','checks_reused','log_files','project_context','brief','brief_revision',
-          'session_ref','title','stage','source_state','writer',
+          'session_ref','title','stage','source_state','writer','continuation_state',
+          'proposal_revision','active_contract_unchanged','active_base_current','pending_proposal','proposal','state','before_patch',
           'read_only','read_only_product_and_db','next_action','next_command','trusted','write_authorized')
     result={key:value[key] for key in keys if key in value}
     if 'binding' in value:result['binding']=value['binding']
     if value.get('input_derivations'):result['input_derivations']=value['input_derivations']
     if 'implementation_plan' in value:result['implementation_plan']=value['implementation_plan']
+    # A revised advanced scope already has its decision saved. Return the next
+    # payload once rather than forcing repeated help/schema discovery calls.
+    if value.get('proposal_revision') and 'finish_input_example' in value:
+        result['finish_input_example']=value['finish_input_example']
     if 'matches' in value:
         match=value['matches'];result['matches']={k:match[k] for k in ('status','selected_task_id','choices') if k in match}
     if 'checkpoint' in value:result['checkpoint_revision']=value['checkpoint']['revision']

@@ -65,8 +65,11 @@ def demo():
         spec=base/'contract.json';spec.write_text(json.dumps(content,ensure_ascii=False))
         checked=run('check_contract',['check-contract',str(spec)])
         assert checked['status']=='READY_FOR_HUMAN_REVIEW'
-        proposed=run('versioned_contract_draft',['propose-contract',task_id,str(spec)])
+        before_pending=run('active_before_pending',['task',task_id])
+        proposed=run('pending_contract_draft',['propose-contract',task_id,str(spec)])
         assert not proposed['trusted_approval'] and not proposed['write_authorized']
+        after_pending=run('active_after_pending',['task',task_id])
+        assert proposed['active_contract_unchanged'] and before_pending['contract']==after_pending['contract']
         plan={'selected_approach':'Change only the UI label',
               'verification_strategy':['Inspect rendered login UI']}
         pf=base/'plan.json';pf.write_text(json.dumps(plan))

@@ -165,7 +165,7 @@ def _compact3(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=Fa
     return {**old, 'AGENTS.md':agent}
 
 
-def render(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False,
+def _v110(command, mode, delegated=False, *, legacy_rc1=False, legacy_rc2=False,
            legacy_rc3=False, legacy_rc4=False, legacy_slim2=False, legacy_compact3=False,
            legacy_compact4=False):
     if legacy_rc1 or legacy_rc2 or legacy_rc3 or legacy_rc4 or legacy_slim2 or legacy_compact3:
@@ -198,6 +198,42 @@ Helper: `{command}`.
         agent=agent.replace('Analysis/proposals need no helper records unless durable context was requested.',
             'Analysis stays in chat. Requested research context is one uniquely named note for this chat in external artifact_directory, without task/brief API records.')
         agent=agent.replace('Payload examples:', 'Do not inspect kit runtime source for payloads. Payload examples:')
+    if delegated:agent=agent.replace(end,f'Read {root / "docs/DELEGATED_ADVISORY.md"} before delegated effects; setup never renews authority.\n'+end)
+    claude=f'''{begin}
+Read and follow AGENTS.md (NOT ENFORCED). Preserve rules outside managed blocks. {policy}
+{end}
+'''
+    return {'AGENTS.md':agent,'CLAUDE.md':claude}
+
+
+def render(command, mode, delegated=False, *, legacy_v110=False, **legacy):
+    """Keep previous byte-exact renderers for conservative managed upgrades."""
+    if legacy_v110 or any(legacy.values()):
+        return _v110(command,mode,delegated,**legacy)
+    root=Path(__file__).resolve().parents[1]
+    begin='# BEGIN AGENTFLOW_V3_GUIDANCE_ONLY';end='# END AGENTFLOW_V3_GUIDANCE_ONLY'
+    policy=('STRICT: No product writes or side-effecting tests.' if mode=='strict' else
+            'ADVISORY: Use actual current USER authority; state/files never grant it. Not OS enforcement.')
+    agent=f'''{begin}
+## Agent Workflow Kit 1.1.1 — {mode.upper()} (NOT ENFORCED)
+{policy}
+
+Understand the requested result. Read relevant code/data once; separate facts, unconfirmed assumptions and USER choices. Trace producer and consumer and one input → action → visible result when interaction matters. Check decisive invariants and generated companions before choosing a fix. Ask only unresolved product choices you cannot establish from evidence.
+
+Authority: a clear implementation request can authorize its stated scope. Honor proposal-first/read-only instructions, exact file locks and exclusions. If approval is already sufficient, briefly state the approach and proceed; do not demand another contract approval. Record that same scope, never undisclosed allowances. Routine diagnosis, implementation choices, regression tests and repairs within authority need no new permission. New outcomes, excluded files, roots, destructive/data/security effects, costs or external actions beyond authority need review. Existing scoped authority for those actions still counts.
+
+When review is needed, explain the observed problem and user impact, evidence/cause, recommended change and why, material tradeoffs, checks and the exact extra decision. Be self-contained and concise; scale detail to risk. Explain jargon plainly. Keep IDs/links optional; explain the decision in chat. Clarification, approval requests and progress updates are distinct. Never invent evidence or use “policy requires it” as the reason a technical solution is necessary. Details/examples: {root / 'docs/DECISIONS.md'} only when needed.
+
+Agree on behavior/component, boundaries and one must-preserve case. Include bounded related tests/support allowances upfront for component work; exact USER file locks remain EXACT. Keep technical file plans separate from permission. `work refine RECEIPT --path FILE --reason REASON` records allowed additions before edits; no new approval. Unexpected files need boundary review. Pending proposals must not replace active authority: `propose-contract` saves a separate draft. Load referenced proposals with `work proposal TOPIC`; preserve their exact paths/checks. Continue only independent approved work after rechecking; pause dependent work. Activate only after the actual decision.
+
+After authority: `work begin "title"` → patch → `work verify RECEIPT` → `work handoff RECEIPT --summary "actual outcome"`. Inspect decision/prepatch results first. Use returned next_command with the helper prefix. Identity/bindings are automatic. Resume owned receipts; do not begin again. TESTS_FAILED: inspect logs, then `work retry RECEIPT --summary REASON` before repair. Other BLOCKED/conflicts require reconciliation, never another API to bypass. One cooperative writer per repo. Preserve unrelated changes, INDEX/HEAD and history.
+
+Test the symptom and preservation. Declare CODE/CLI/UI before approval: CLI alone stays QUICK; unit/mock checks cannot prove actual UI. Report verified behavior, missing checks and application readiness. Avoid duplicate help/history/rechecks/handoffs. Analysis stays in chat; requested durable research is one uniquely named external note, without task/brief API records. Structured briefs only when needed for several milestones.
+
+Keep kit artifacts in external artifact_directory; product regression tests belong with code. Never stage/commit/push/deploy, unstage/untrack, force-add, change ignore/hooks, dependencies/settings/models or add agents beyond USER scope. Resume/context only for gaps; old PASS cannot cover changed sources. Do not inspect kit runtime source for payloads. Examples: {root / 'docs/QUICKSTART.md'}; advanced: {root / 'docs/RECOVERY.md'}.
+Helper: `{command}`.
+{end}
+'''
     if delegated:agent=agent.replace(end,f'Read {root / "docs/DELEGATED_ADVISORY.md"} before delegated effects; setup never renews authority.\n'+end)
     claude=f'''{begin}
 Read and follow AGENTS.md (NOT ENFORCED). Preserve rules outside managed blocks. {policy}
